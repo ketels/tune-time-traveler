@@ -1,12 +1,78 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Music, Users, Smartphone } from 'lucide-react';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Check if there's a game code in URL
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      navigate(`/join?code=${code}`);
+    }
+  }, [searchParams, navigate]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Hero Section */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div className="animate-slide-up space-y-6 max-w-md">
+          {/* Logo/Icon */}
+          <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-primary flex items-center justify-center glow-primary">
+            <Music className="w-12 h-12 text-primary-foreground" />
+          </div>
+
+          {/* Title */}
+          <div>
+            <h1 className="text-4xl font-bold text-gradient mb-3">
+              Musik Timeline
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Gissa när låten släpptes och bygg din tidslinje!
+            </p>
+          </div>
+
+          {/* Features */}
+          <div className="grid grid-cols-2 gap-4 py-6">
+            <div className="glass rounded-xl p-4 text-center">
+              <Users className="w-8 h-8 mx-auto text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Spela i lag</p>
+            </div>
+            <div className="glass rounded-xl p-4 text-center">
+              <Smartphone className="w-8 h-8 mx-auto text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Var som helst</p>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="space-y-3">
+            <Button
+              size="lg"
+              onClick={() => navigate('/create')}
+              className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
+            >
+              Skapa nytt spel
+            </Button>
+            
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate('/join')}
+              className="w-full h-14 text-lg font-semibold"
+            >
+              Gå med i spel
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="p-4 text-center text-sm text-muted-foreground">
+        <p>Inspirerat av Hitster</p>
+      </footer>
     </div>
   );
 };
