@@ -1,19 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createGame, createTeam } from '@/lib/gameActions';
+import { createGame } from '@/lib/gameActions';
 import { DECADES, GENRES } from '@/types/game';
-import { Music, Users, Play } from 'lucide-react';
+import { Music, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CreateGame() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [hostTeamName, setHostTeamName] = useState('');
   const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -35,15 +32,6 @@ export default function CreateGame() {
   };
 
   const handleCreate = async () => {
-    if (!hostTeamName.trim()) {
-      toast({
-        title: 'Fel',
-        description: 'Ange ett lagnamn',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsCreating(true);
 
     try {
@@ -52,10 +40,8 @@ export default function CreateGame() {
         genres: selectedGenres,
       });
 
-      const team = await createTeam(game.id, hostTeamName.trim(), true);
-
-      // Store team ID in localStorage
-      localStorage.setItem('teamId', team.id);
+      // Store game ID in localStorage (host has no team)
+      localStorage.removeItem('teamId');
       localStorage.setItem('gameId', game.id);
 
       navigate(`/host/${game.id}`);
@@ -78,26 +64,6 @@ export default function CreateGame() {
           <h1 className="text-3xl font-bold text-gradient mb-2">Skapa nytt spel</h1>
           <p className="text-muted-foreground">Konfigurera ditt musikspel</p>
         </div>
-
-        {/* Team Name */}
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-primary" />
-              Ditt lag
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Label htmlFor="teamName">Lagnamn</Label>
-            <Input
-              id="teamName"
-              placeholder="Ange ditt lagnamn..."
-              value={hostTeamName}
-              onChange={(e) => setHostTeamName(e.target.value)}
-              className="mt-2"
-            />
-          </CardContent>
-        </Card>
 
         {/* Decades */}
         <Card className="glass">

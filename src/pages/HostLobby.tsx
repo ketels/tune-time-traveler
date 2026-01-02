@@ -43,11 +43,14 @@ export default function HostLobby() {
     }
   };
 
+  // Filter out host teams - only playing teams should be in the game
+  const playingTeams = teams.filter(t => !t.is_host);
+
   const handleStartGame = async () => {
-    if (!gameId || teams.length < 1) return;
+    if (!gameId || playingTeams.length < 1) return;
 
     try {
-      await startGame(gameId, teams[0].id);
+      await startGame(gameId, playingTeams[0].id);
       navigate(`/player/${gameId}`);
     } catch (error) {
       console.error('Error starting game:', error);
@@ -117,17 +120,17 @@ export default function HostLobby() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="w-5 h-5 text-primary" />
-              Lag ({teams.length})
+              Lag ({playingTeams.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {teams.length === 0 ? (
+            {playingTeams.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 Väntar på lag...
               </p>
             ) : (
               <div className="space-y-2">
-                {teams.map((team) => (
+                {playingTeams.map((team) => (
                   <div
                     key={team.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
@@ -137,9 +140,6 @@ export default function HostLobby() {
                       style={{ backgroundColor: team.color }}
                     />
                     <span className="font-medium">{team.name}</span>
-                    {team.is_host && (
-                      <span className="ml-auto text-xs text-primary">Värd</span>
-                    )}
                   </div>
                 ))}
               </div>
@@ -151,16 +151,18 @@ export default function HostLobby() {
         <Button
           size="lg"
           onClick={handleStartGame}
-          disabled={teams.length < 1}
+          disabled={playingTeams.length < 1}
           className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
         >
           <Play className="w-5 h-5 mr-2" />
           Starta spelet
         </Button>
 
-        {teams.length < 2 && (
+        {playingTeams.length < 2 && (
           <p className="text-center text-sm text-muted-foreground">
-            Du kan starta med ett lag, men det är roligare med flera!
+            {playingTeams.length === 0 
+              ? 'Väntar på att lag ska ansluta...'
+              : 'Du kan starta med ett lag, men det är roligare med flera!'}
           </p>
         )}
       </div>

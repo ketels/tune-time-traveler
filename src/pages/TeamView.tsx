@@ -20,8 +20,11 @@ export default function TeamView() {
   const { game, teams, loading } = useGame(gameId || null);
   const { currentRound } = useCurrentRound(gameId || null);
   
+  // Filter out host teams - only playing teams
+  const playingTeams = teams.filter(t => !t.is_host);
+  
   const storedTeamId = localStorage.getItem('teamId');
-  const myTeam = teams.find(t => t.id === storedTeamId);
+  const myTeam = playingTeams.find(t => t.id === storedTeamId);
   const { cards } = useTeamCards(storedTeamId);
   
   const [selectedPosition, setSelectedPosition] = useState<{ before: number | null; after: number | null } | null>(null);
@@ -29,7 +32,7 @@ export default function TeamView() {
   const [isCorrect, setIsCorrect] = useState(false);
 
   const isMyTurn = game?.current_team_id === storedTeamId;
-  const currentTeam = teams.find(t => t.id === game?.current_team_id);
+  const currentTeam = playingTeams.find(t => t.id === game?.current_team_id);
 
   useEffect(() => {
     if (game?.status === 'lobby') {
@@ -88,8 +91,8 @@ export default function TeamView() {
         description: `${currentRound.song_name} släpptes ${currentRound.release_year}`,
       });
     } else {
-      const nextTeamIndex = teams.findIndex(t => t.id === storedTeamId) + 1;
-      const nextTeam = teams[nextTeamIndex % teams.length];
+      const currentTeamIndex = playingTeams.findIndex(t => t.id === storedTeamId);
+      const nextTeam = playingTeams[(currentTeamIndex + 1) % playingTeams.length];
 
       await handleWrongGuess(
         gameId,
@@ -116,8 +119,8 @@ export default function TeamView() {
   const handlePass = async () => {
     if (!gameId) return;
 
-    const nextTeamIndex = teams.findIndex(t => t.id === storedTeamId) + 1;
-    const nextTeam = teams[nextTeamIndex % teams.length];
+    const currentTeamIndex = playingTeams.findIndex(t => t.id === storedTeamId);
+    const nextTeam = playingTeams[(currentTeamIndex + 1) % playingTeams.length];
 
     await passTurn(gameId, nextTeam.id);
     setSelectedPosition(null);
