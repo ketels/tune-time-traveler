@@ -57,36 +57,42 @@ export type Database = {
       }
       current_round: {
         Row: {
+          album_image: string | null
           artist_name: string
           consecutive_correct: number
           created_at: string
           game_id: string
           id: string
           is_revealed: boolean
+          preview_url: string | null
           release_year: number
           song_name: string
           spotify_uri: string | null
           team_id: string
         }
         Insert: {
+          album_image?: string | null
           artist_name: string
           consecutive_correct?: number
           created_at?: string
           game_id: string
           id?: string
           is_revealed?: boolean
+          preview_url?: string | null
           release_year: number
           song_name: string
           spotify_uri?: string | null
           team_id: string
         }
         Update: {
+          album_image?: string | null
           artist_name?: string
           consecutive_correct?: number
           created_at?: string
           game_id?: string
           id?: string
           is_revealed?: boolean
+          preview_url?: string | null
           release_year?: number
           song_name?: string
           spotify_uri?: string | null
