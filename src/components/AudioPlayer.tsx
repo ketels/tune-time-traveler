@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, ExternalLink } from 'lucide-react';
 
 interface AudioPlayerProps {
   previewUrl: string | null;
@@ -9,6 +9,7 @@ interface AudioPlayerProps {
   isRevealed: boolean;
   songName?: string;
   artistName?: string;
+  spotifyUri?: string | null;
 }
 
 export function AudioPlayer({ 
@@ -16,8 +17,10 @@ export function AudioPlayer({
   albumImage, 
   isRevealed,
   songName,
-  artistName 
+  artistName,
+  spotifyUri
 }: AudioPlayerProps) {
+  const spotifyUrl = spotifyUri ? `https://open.spotify.com/track/${spotifyUri.split(':')[2]}` : null;
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -131,9 +134,23 @@ export function AudioPlayer({
         <div className="w-10" /> {/* Spacer for symmetry */}
       </div>
 
+      {/* Spotify Link */}
+      {spotifyUrl && isRevealed && (
+        <a
+          href={spotifyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 mt-4 text-sm text-primary hover:underline"
+        >
+          <ExternalLink size={16} />
+          Öppna i Spotify
+        </a>
+      )}
+
       {!previewUrl && (
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Ingen förhandslyssning tillgänglig. Använd Spotify-appen för att spela låten.
+          Ingen förhandslyssning tillgänglig.
+          {spotifyUrl && isRevealed ? ' Använd länken ovan för att lyssna i Spotify.' : ' Avslöja låten för att öppna i Spotify.'}
         </p>
       )}
     </div>
