@@ -45,6 +45,8 @@ export default function PlayerView() {
         artist: song.artist,
         year: song.year,
         uri: song.uri,
+        previewUrl: song.previewUrl,
+        albumImage: song.albumImage,
       });
 
       toast({
@@ -116,11 +118,12 @@ export default function PlayerView() {
         {/* Audio Player */}
         {currentRound ? (
           <AudioPlayer
-            previewUrl={null} // We'll need to fetch this separately
-            albumImage={null}
+            previewUrl={(currentRound as any).preview_url}
+            albumImage={(currentRound as any).album_image}
             isRevealed={currentRound.is_revealed}
             songName={currentRound.is_revealed ? currentRound.song_name : undefined}
             artistName={currentRound.is_revealed ? currentRound.artist_name : undefined}
+            spotifyUri={currentRound.spotify_uri}
           />
         ) : (
           <Card className="glass">

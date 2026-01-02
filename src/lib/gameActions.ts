@@ -137,7 +137,7 @@ export async function fetchNewSong(decade: string | null, genres: string[], excl
 export async function createRound(
   gameId: string,
   teamId: string,
-  song: { name: string; artist: string; year: number; uri: string }
+  song: { name: string; artist: string; year: number; uri: string; previewUrl?: string | null; albumImage?: string | null }
 ) {
   // Delete any existing rounds for this game
   await supabase
@@ -154,6 +154,8 @@ export async function createRound(
       artist_name: song.artist,
       release_year: song.year,
       spotify_uri: song.uri,
+      preview_url: song.previewUrl || null,
+      album_image: song.albumImage || null,
     })
     .select()
     .single();
