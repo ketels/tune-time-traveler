@@ -19,7 +19,9 @@ export default function PlayerView() {
   const { game, teams, loading } = useGame(gameId || null);
   const { currentRound } = useCurrentRound(gameId || null);
 
-  const currentTeam = teams.find(t => t.id === game?.current_team_id);
+  // Filter out host teams - only playing teams
+  const playingTeams = teams.filter(t => !t.is_host);
+  const currentTeam = playingTeams.find(t => t.id === game?.current_team_id);
 
   useEffect(() => {
     if (game?.status === 'finished') {
@@ -150,7 +152,7 @@ export default function PlayerView() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {teams
+              {playingTeams
                 .sort((a, b) => {
                   // Sort by card count (we'd need to fetch this)
                   return 0;
