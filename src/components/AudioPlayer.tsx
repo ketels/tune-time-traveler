@@ -134,8 +134,8 @@ export function AudioPlayer({
         <div className="w-10" /> {/* Spacer for symmetry */}
       </div>
 
-      {/* Spotify Link */}
-      {spotifyUrl && isRevealed && (
+      {/* Spotify Link - always show if available */}
+      {spotifyUrl && (
         <a
           href={spotifyUrl}
           target="_blank"
@@ -143,14 +143,13 @@ export function AudioPlayer({
           className="flex items-center justify-center gap-2 mt-4 text-sm text-primary hover:underline"
         >
           <ExternalLink size={16} />
-          Öppna i Spotify
+          Lyssna i Spotify
         </a>
       )}
 
-      {!previewUrl && (
+      {!previewUrl && !spotifyUrl && (
         <p className="text-center text-sm text-muted-foreground mt-4">
           Ingen förhandslyssning tillgänglig.
-          {spotifyUrl && isRevealed ? ' Använd länken ovan för att lyssna i Spotify.' : ' Avslöja låten för att öppna i Spotify.'}
         </p>
       )}
     </div>
