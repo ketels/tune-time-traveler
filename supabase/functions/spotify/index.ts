@@ -24,80 +24,81 @@ async function getSpotifyToken(): Promise<string> {
 }
 
 async function searchTrack(token: string, decade: string, genres: string[], excludeYears: number[]): Promise<any> {
+  const market = 'SE';
+
+  const pickFromTracks = (tracks: any[], requirePreview: boolean) => {
+    const yearOk = (track: any) => {
+      const releaseYear = new Date(track.album.release_date).getFullYear();
+      return !excludeYears.includes(releaseYear);
+    };
+
+    const candidates = tracks.filter((t: any) => yearOk(t) && (!requirePreview || !!t.preview_url));
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  };
+
+  const doSearch = async (q: string, offset: number) => {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}&market=${market}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    return (data.tracks?.items || []) as any[];
+  };
+
   // Build search query based on filters
-  let query = '';
-  
+  let baseQuery = '';
+
   if (decade) {
     const startYear = parseInt(decade);
     const endYear = startYear + 9;
-    query += `year:${startYear}-${endYear} `;
-  }
-  
-  if (genres.length > 0) {
-    query += `genre:${genres[Math.floor(Math.random() * genres.length)]} `;
+    baseQuery += `year:${startYear}-${endYear} `;
   }
 
-  // Add some randomness to get different results
-  const randomOffset = Math.floor(Math.random() * 50);
+  if (genres.length > 0) {
+    baseQuery += `genre:${genres[Math.floor(Math.random() * genres.length)]} `;
+  }
+
   const randomChars = 'abcdefghijklmnopqrstuvwxyz';
   const randomChar = randomChars[Math.floor(Math.random() * randomChars.length)];
-  
-  if (!query) {
-    query = randomChar;
-  }
 
-  console.log('Searching with query:', query);
+  if (!baseQuery) baseQuery = randomChar;
 
-  const response = await fetch(
-    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=50&offset=${randomOffset}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+  let fallbackTrack: any | null = null;
+
+  // Try a few pages to increase chance of finding a preview_url
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const randomOffset = Math.floor(Math.random() * 200);
+    console.log('Searching with query:', baseQuery, 'offset:', randomOffset, 'market:', market, 'attempt:', attempt + 1);
+
+    const items = await doSearch(baseQuery, randomOffset);
+    if (!items.length) continue;
+
+    const withPreview = pickFromTracks(items, true);
+    if (withPreview) return withPreview;
+
+    if (!fallbackTrack) {
+      fallbackTrack = pickFromTracks(items, false);
     }
-  );
-
-  const data = await response.json();
-  
-  if (!data.tracks?.items?.length) {
-    console.log('No tracks found, trying fallback search');
-    // Fallback to a simpler search
-    const fallbackResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${randomChar}&type=track&limit=50&offset=${randomOffset}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
-    );
-    const fallbackData = await fallbackResponse.json();
-    return filterAndSelectTrack(fallbackData.tracks?.items || [], excludeYears);
   }
 
-  return filterAndSelectTrack(data.tracks.items, excludeYears);
-}
+  // Broader fallback search (still tries to find preview first)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const randomOffset = Math.floor(Math.random() * 200);
+    console.log('Fallback search with random char:', randomChar, 'offset:', randomOffset, 'market:', market, 'attempt:', attempt + 1);
 
-function filterAndSelectTrack(tracks: any[], excludeYears: number[]): any {
-  // Filter out tracks from years we already have
-  const validTracks = tracks.filter((track: any) => {
-    const releaseYear = new Date(track.album.release_date).getFullYear();
-    return !excludeYears.includes(releaseYear) && track.preview_url;
-  });
+    const items = await doSearch(randomChar, randomOffset);
+    if (!items.length) continue;
 
-  if (validTracks.length === 0) {
-    // If no valid tracks with preview, just filter by year
-    const yearFilteredTracks = tracks.filter((track: any) => {
-      const releaseYear = new Date(track.album.release_date).getFullYear();
-      return !excludeYears.includes(releaseYear);
-    });
-    
-    if (yearFilteredTracks.length > 0) {
-      return yearFilteredTracks[Math.floor(Math.random() * yearFilteredTracks.length)];
+    const withPreview = pickFromTracks(items, true);
+    if (withPreview) return withPreview;
+
+    if (!fallbackTrack) {
+      fallbackTrack = pickFromTracks(items, false);
     }
-    return tracks[Math.floor(Math.random() * tracks.length)];
   }
 
-  return validTracks[Math.floor(Math.random() * validTracks.length)];
+  return fallbackTrack;
 }
 
 serve(async (req) => {

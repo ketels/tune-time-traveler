@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Play, Pause, Volume2, VolumeX, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface AudioPlayerProps {
   previewUrl: string | null;
@@ -21,6 +22,8 @@ export function AudioPlayer({
   spotifyUri
 }: AudioPlayerProps) {
   const spotifyUrl = spotifyUri ? `https://open.spotify.com/track/${spotifyUri.split(':')[2]}` : null;
+  const { toast } = useToast();
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -50,32 +53,67 @@ export function AudioPlayer({
   }, []);
 
   useEffect(() => {
-    if (previewUrl && audioRef.current) {
-      audioRef.current.src = previewUrl;
-      audioRef.current.load();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Reset state when a new preview loads
+    audio.pause();
+    setIsPlaying(false);
+    setProgress(0);
+
+    if (previewUrl) {
+      audio.src = previewUrl;
+    } else {
+      audio.removeAttribute('src');
     }
+
+    audio.load();
   }, [previewUrl]);
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!previewUrl) {
+      toast({
+        title: 'Ingen förhandslyssning',
+        description: 'Den här låten saknar 30-sekunders preview. Använd Spotify-länken istället.',
+      });
+      return;
+    }
 
     if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+      audio.pause();
+      setIsPlaying(false);
+      return;
     }
-    setIsPlaying(!isPlaying);
+
+    try {
+      await audio.play();
+      setIsPlaying(true);
+    } catch (e) {
+      console.error('Audio playback failed:', e);
+      setIsPlaying(false);
+      toast({
+        title: 'Kunde inte spela upp',
+        description: 'Förhandslyssningen blockerades eller kunde inte laddas. Prova igen eller öppna i Spotify.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const toggleMute = () => {
-    if (!audioRef.current) return;
-    audioRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const nextMuted = !isMuted;
+    audio.muted = nextMuted;
+    setIsMuted(nextMuted);
   };
 
   return (
     <div className="glass rounded-2xl p-6 w-full max-w-md mx-auto">
-      <audio ref={audioRef} />
+      <audio ref={audioRef} preload="metadata" crossOrigin="anonymous" />
       
       {/* Album Art */}
       <div className="relative aspect-square rounded-xl overflow-hidden mb-6 bg-secondary">
