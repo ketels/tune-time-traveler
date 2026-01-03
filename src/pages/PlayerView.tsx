@@ -53,7 +53,7 @@ export default function PlayerView() {
 
       toast({
         title: 'Ny låt!',
-        description: 'Låten spelas nu',
+        description: song.previewUrl ? 'Tryck på play för att lyssna.' : 'Den här låten saknar preview — använd Spotify-länken.',
       });
     } catch (error) {
       console.error('Error fetching song:', error);
