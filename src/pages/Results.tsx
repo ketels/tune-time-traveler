@@ -1,13 +1,23 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useGame, useTeamCards } from '@/hooks/useGame';
-import { Trophy, Medal, Home } from 'lucide-react';
+import { useLocalGame } from '@/hooks/useLocalGame';
+import { getSortedTeamsByScore, LocalTeam } from '@/lib/localGameState';
+import { Trophy, Home } from 'lucide-react';
 
 export default function Results() {
-  const { gameId } = useParams<{ gameId: string }>();
+  const { gameCode } = useParams<{ gameCode: string }>();
   const navigate = useNavigate();
-  const { teams, loading } = useGame(gameId || null);
+  
+  const { gameState, loading, clearGame } = useLocalGame({ 
+    gameCode, 
+    isHost: false 
+  });
+
+  const handleNewGame = () => {
+    clearGame();
+    navigate('/');
+  };
 
   if (loading) {
     return (
@@ -20,6 +30,19 @@ export default function Results() {
     );
   }
 
+  if (!gameState) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Inga resultat hittades</p>
+          <Button onClick={() => navigate('/')}>Tillbaka till start</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const sortedTeams = getSortedTeamsByScore(gameState);
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-lg mx-auto space-y-6 animate-slide-up">
@@ -31,7 +54,7 @@ export default function Results() {
 
         {/* Results */}
         <div className="space-y-4">
-          {teams.map((team, index) => (
+          {sortedTeams.map((team, index) => (
             <TeamResult key={team.id} team={team} rank={index + 1} />
           ))}
         </div>
@@ -39,7 +62,7 @@ export default function Results() {
         {/* Back to Home */}
         <Button
           size="lg"
-          onClick={() => navigate('/')}
+          onClick={handleNewGame}
           className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
         >
           <Home className="w-5 h-5 mr-2" />
@@ -50,9 +73,8 @@ export default function Results() {
   );
 }
 
-function TeamResult({ team, rank }: { team: any; rank: number }) {
-  const { cards } = useTeamCards(team.id);
-  const cardCount = cards.filter(c => !c.is_start_card).length;
+function TeamResult({ team, rank }: { team: LocalTeam; rank: number }) {
+  const cardCount = team.cards.filter(c => !c.isStartCard).length;
 
   const getMedalEmoji = (rank: number) => {
     switch (rank) {

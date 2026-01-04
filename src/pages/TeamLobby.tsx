@@ -1,39 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGame } from '@/hooks/useGame';
+import { useLocalGame } from '@/hooks/useLocalGame';
 import { Users, Clock } from 'lucide-react';
 
 export default function TeamLobby() {
-  const { gameId } = useParams<{ gameId: string }>();
+  const { gameCode } = useParams<{ gameCode: string }>();
   const navigate = useNavigate();
-  const { game, teams, loading } = useGame(gameId || null);
   
-  const storedTeamId = localStorage.getItem('teamId');
-  const myTeam = teams.find(t => t.id === storedTeamId);
+  const { gameState, loading, myTeam, isConnected } = useLocalGame({ 
+    gameCode, 
+    isHost: false 
+  });
 
+  // Redirect when game starts
   useEffect(() => {
-    if (game?.status === 'playing') {
-      navigate(`/team/${gameId}`);
+    if (gameState?.status === 'playing') {
+      navigate(`/team/${gameCode}`);
     }
-  }, [game?.status, gameId, navigate]);
+  }, [gameState?.status, gameCode, navigate]);
 
-  if (loading) {
+  if (loading || !isConnected) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Laddar...</p>
+          <p className="text-muted-foreground">Ansluter till spel...</p>
         </div>
       </div>
     );
   }
 
-  if (!game || !myTeam) {
+  if (!gameState) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Spelet hittades inte</p>
+          <p className="text-muted-foreground">Väntar på speldata...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!myTeam) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Ditt lag hittades inte</p>
         </div>
       </div>
     );
@@ -70,12 +82,12 @@ export default function TeamLobby() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="w-5 h-5 text-primary" />
-              Alla lag ({teams.length})
+              Alla lag ({gameState.teams.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {teams.map((team) => (
+              {gameState.teams.map((team) => (
                 <div
                   key={team.id}
                   className={`flex items-center gap-3 p-3 rounded-lg ${
@@ -87,9 +99,6 @@ export default function TeamLobby() {
                     style={{ backgroundColor: team.color }}
                   />
                   <span className="font-medium">{team.name}</span>
-                  {team.is_host && (
-                    <span className="ml-auto text-xs text-primary">Värd</span>
-                  )}
                   {team.id === myTeam.id && (
                     <span className="ml-auto text-xs text-primary">Du</span>
                   )}
