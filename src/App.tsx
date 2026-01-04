@@ -25,11 +25,11 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/create" element={<CreateGame />} />
           <Route path="/join" element={<JoinGame />} />
-          <Route path="/host/:gameId" element={<HostLobby />} />
-          <Route path="/lobby/:gameId" element={<TeamLobby />} />
-          <Route path="/player/:gameId" element={<PlayerView />} />
-          <Route path="/team/:gameId" element={<TeamView />} />
-          <Route path="/results/:gameId" element={<Results />} />
+          <Route path="/host/:gameCode" element={<HostLobby />} />
+          <Route path="/lobby/:gameCode" element={<TeamLobby />} />
+          <Route path="/player/:gameCode" element={<PlayerView />} />
+          <Route path="/team/:gameCode" element={<TeamView />} />
+          <Route path="/results/:gameCode" element={<Results />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -2,64 +2,59 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGame } from '@/hooks/useGame';
-import { startGame } from '@/lib/gameActions';
+import { useLocalGame } from '@/hooks/useLocalGame';
 import { QRCode } from '@/components/QRCode';
 import { Users, Play, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HostLobby() {
-  const { gameId } = useParams<{ gameId: string }>();
+  const { gameCode } = useParams<{ gameCode: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { game, teams, loading } = useGame(gameId || null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (game?.status === 'playing') {
-      navigate(`/player/${gameId}`);
-    }
-  }, [game?.status, gameId, navigate]);
+  const { gameState, loading, isConnected, startGame } = useLocalGame({ 
+    gameCode, 
+    isHost: true 
+  });
 
-  const joinUrl = `${window.location.origin}/join?code=${game?.code || ''}`;
+  // Redirect to player view when game starts
+  useEffect(() => {
+    if (gameState?.status === 'playing') {
+      navigate(`/player/${gameCode}`);
+    }
+  }, [gameState?.status, gameCode, navigate]);
+
+  const joinUrl = `${window.location.origin}/join?code=${gameCode}`;
 
   const copyCode = async () => {
-    if (!game?.code) return;
-    
     try {
-      await navigator.clipboard.writeText(game.code);
+      await navigator.clipboard.writeText(gameCode || '');
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
       toast({
         title: 'Kopierat!',
         description: 'Spelkoden har kopierats',
       });
-    } catch {
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
       toast({
         title: 'Fel',
-        description: 'Kunde inte kopiera koden',
+        description: 'Kunde inte kopiera',
         variant: 'destructive',
       });
     }
   };
 
-  // Filter out host teams - only playing teams should be in the game
-  const playingTeams = teams.filter(t => !t.is_host);
-
-  const handleStartGame = async () => {
-    if (!gameId || playingTeams.length < 1) return;
-
-    try {
-      await startGame(gameId, playingTeams[0].id);
-      navigate(`/player/${gameId}`);
-    } catch (error) {
-      console.error('Error starting game:', error);
+  const handleStartGame = () => {
+    if (!gameState || gameState.teams.length === 0) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte starta spelet',
+        title: 'Vänta på lag',
+        description: 'Minst ett lag måste ansluta innan spelet kan starta',
         variant: 'destructive',
       });
+      return;
     }
+    startGame();
   };
 
   if (loading) {
@@ -67,13 +62,13 @@ export default function HostLobby() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-muted-foreground">Laddar spel...</p>
+          <p className="text-muted-foreground">Laddar...</p>
         </div>
       </div>
     );
   }
 
-  if (!game) {
+  if (!gameState) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -88,49 +83,59 @@ export default function HostLobby() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-lg mx-auto space-y-6 animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Väntar på spelare</h1>
-          <p className="text-muted-foreground">Dela koden med de andra lagen</p>
-        </div>
-
-        {/* QR Code */}
-        <div className="flex flex-col items-center">
-          <QRCode value={joinUrl} size={180} />
-          
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-4xl font-mono font-bold text-primary tracking-widest">
-              {game.code}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={copyCode}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {copied ? <Check className="w-5 h-5 text-primary" /> : <Copy className="w-5 h-5" />}
-            </Button>
-          </div>
-          
-          <p className="text-sm text-muted-foreground mt-2">
-            Scanna QR-koden eller ange koden
+          <h1 className="text-3xl font-bold text-gradient mb-2">Väntar på lag</h1>
+          <p className="text-muted-foreground">
+            {isConnected ? 'Ansluten till broadcast' : 'Ansluter...'}
           </p>
         </div>
 
-        {/* Teams */}
+        {/* QR Code */}
+        <Card className="glass">
+          <CardContent className="py-6 flex flex-col items-center">
+            <QRCode value={joinUrl} size={200} />
+            <p className="text-sm text-muted-foreground mt-4">
+              Skanna för att ansluta
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Game Code */}
+        <Card className="glass">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Spelkod</p>
+                <p className="text-4xl font-mono font-bold tracking-widest text-primary">
+                  {gameCode}
+                </p>
+              </div>
+              <Button variant="outline" size="icon" onClick={copyCode}>
+                {copied ? (
+                  <Check className="w-5 h-5 text-green-500" />
+                ) : (
+                  <Copy className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Connected Teams */}
         <Card className="glass">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="w-5 h-5 text-primary" />
-              Lag ({playingTeams.length})
+              Anslutna lag ({gameState.teams.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {playingTeams.length === 0 ? (
+            {gameState.teams.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
-                Väntar på lag...
+                Inga lag har anslutit ännu...
               </p>
             ) : (
               <div className="space-y-2">
-                {playingTeams.map((team) => (
+                {gameState.teams.map((team) => (
                   <div
                     key={team.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
@@ -151,18 +156,16 @@ export default function HostLobby() {
         <Button
           size="lg"
           onClick={handleStartGame}
-          disabled={playingTeams.length < 1}
-          className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
+          disabled={gameState.teams.length === 0}
+          className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           <Play className="w-5 h-5 mr-2" />
           Starta spelet
         </Button>
 
-        {playingTeams.length < 2 && (
+        {gameState.teams.length === 0 && (
           <p className="text-center text-sm text-muted-foreground">
-            {playingTeams.length === 0 
-              ? 'Väntar på att lag ska ansluta...'
-              : 'Du kan starta med ett lag, men det är roligare med flera!'}
+            Väntar på att minst ett lag ska ansluta...
           </p>
         )}
       </div>

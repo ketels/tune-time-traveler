@@ -1,19 +1,60 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { joinGame, createTeam } from '@/lib/gameActions';
+import { useLocalGame } from '@/hooks/useLocalGame';
 import { Users, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function JoinGame() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [gameCode, setGameCode] = useState('');
+  const [searchParams] = useSearchParams();
+  const [gameCode, setGameCode] = useState(searchParams.get('code') || '');
   const [teamName, setTeamName] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const { joinGame, isConnected, gameState } = useLocalGame({ 
+    gameCode: isConnecting ? gameCode : undefined,
+    isHost: false 
+  });
+
+  // Watch for successful connection and game state
+  useEffect(() => {
+    if (isConnecting && gameState && isConnected) {
+      // We're connected, now try to join
+      handleActualJoin();
+    }
+  }, [isConnecting, gameState, isConnected]);
+
+  const handleActualJoin = async () => {
+    try {
+      const team = await joinGame(teamName.trim());
+      
+      localStorage.setItem('teamId', team.id);
+      localStorage.setItem('gameCode', gameCode);
+
+      toast({
+        title: 'Ansluten!',
+        description: `Välkommen, ${team.name}!`,
+      });
+
+      navigate(`/lobby/${gameCode}`);
+    } catch (error) {
+      console.error('Error joining game:', error);
+      toast({
+        title: 'Fel',
+        description: error instanceof Error ? error.message : 'Kunde inte gå med i spelet',
+        variant: 'destructive',
+      });
+      setIsConnecting(false);
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const handleJoin = async () => {
     if (!gameCode.trim() || !teamName.trim()) {
@@ -26,26 +67,10 @@ export default function JoinGame() {
     }
 
     setIsJoining(true);
-
-    try {
-      const game = await joinGame(gameCode.trim());
-      const team = await createTeam(game.id, teamName.trim(), false);
-
-      // Store team ID in localStorage
-      localStorage.setItem('teamId', team.id);
-      localStorage.setItem('gameId', game.id);
-
-      navigate(`/team/${game.id}`);
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte gå med i spelet',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsJoining(false);
-    }
+    setIsConnecting(true);
+    
+    // The connection will be established by useLocalGame hook
+    // and handleActualJoin will be called via useEffect
   };
 
   return (
@@ -73,6 +98,7 @@ export default function JoinGame() {
                 onChange={(e) => setGameCode(e.target.value.toUpperCase())}
                 className="mt-2 text-center text-2xl font-mono tracking-widest"
                 maxLength={6}
+                disabled={isJoining}
               />
             </div>
 
@@ -84,6 +110,7 @@ export default function JoinGame() {
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 className="mt-2"
+                disabled={isJoining}
               />
             </div>
 
