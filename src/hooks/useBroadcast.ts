@@ -54,6 +54,7 @@ export function useBroadcast({ gameCode, isHost, onMessage, onGameState }: UseBr
     const channel = supabase.channel(channelName, {
       config: {
         broadcast: { self: false },
+        presence: { key: deviceId.current },
       },
     });
 
@@ -72,10 +73,27 @@ export function useBroadcast({ gameCode, isHost, onMessage, onGameState }: UseBr
           onMessageRef.current(message);
         }
       })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        // When a new client joins, host should broadcast current state
+        if (isHost && key !== deviceId.current) {
+          console.log(`[Broadcast] New client joined, will broadcast state`);
+          // Signal to resend state - done via ref callback
+          if (onMessageRef.current) {
+            onMessageRef.current({
+              type: 'team_join' as BroadcastMessageType,
+              payload: { requestState: true },
+              senderId: key,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      })
       .subscribe((status) => {
         console.log(`[Broadcast] Channel status: ${status}`);
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
+          // Track presence
+          channel.track({ online: true });
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
         }

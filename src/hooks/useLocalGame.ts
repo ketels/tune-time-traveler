@@ -70,7 +70,15 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
 
     // Host handles team join requests
     if (message.type === 'team_join' && currentGameState && currentBroadcast) {
-      const { teamName } = message.payload;
+      const { teamName, requestState } = message.payload;
+      
+      // If this is just a state request (from presence join), broadcast current state
+      if (requestState) {
+        console.log('[Host] New client requesting state, broadcasting...');
+        currentBroadcast.broadcastGameState(currentGameState);
+        return;
+      }
+      
       console.log('[Host] Team join request:', teamName);
       
       const newState = addTeamToGame(currentGameState, teamName);

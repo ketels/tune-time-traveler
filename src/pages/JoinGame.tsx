@@ -15,46 +15,49 @@ export default function JoinGame() {
   const [gameCode, setGameCode] = useState(searchParams.get('code') || '');
   const [teamName, setTeamName] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [hasTriedJoin, setHasTriedJoin] = useState(false);
 
+  // Connect to broadcast channel when we have a game code
   const { joinGame, isConnected, gameState } = useLocalGame({ 
-    gameCode: isConnecting ? gameCode : undefined,
+    gameCode: gameCode.length === 6 ? gameCode : undefined,
     isHost: false 
   });
 
-  // Watch for successful connection and game state
+  // When connected and have game state, try to join (but only once)
   useEffect(() => {
-    if (isConnecting && gameState && isConnected) {
-      // We're connected, now try to join
-      handleActualJoin();
-    }
-  }, [isConnecting, gameState, isConnected]);
-
-  const handleActualJoin = async () => {
-    try {
-      const team = await joinGame(teamName.trim());
+    if (isJoining && gameState && isConnected && !hasTriedJoin && teamName.trim()) {
+      setHasTriedJoin(true);
       
-      localStorage.setItem('teamId', team.id);
-      localStorage.setItem('gameCode', gameCode);
+      const doJoin = async () => {
+        try {
+          console.log('[JoinGame] Attempting to join with team:', teamName);
+          const team = await joinGame(teamName.trim());
+          
+          localStorage.setItem('teamId', team.id);
+          localStorage.setItem('gameCode', gameCode);
 
-      toast({
-        title: 'Ansluten!',
-        description: `Välkommen, ${team.name}!`,
-      });
+          toast({
+            title: 'Ansluten!',
+            description: `Välkommen, ${team.name}!`,
+          });
 
-      navigate(`/lobby/${gameCode}`);
-    } catch (error) {
-      console.error('Error joining game:', error);
-      toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte gå med i spelet',
-        variant: 'destructive',
-      });
-      setIsConnecting(false);
-    } finally {
-      setIsJoining(false);
+          navigate(`/lobby/${gameCode}`);
+        } catch (error) {
+          console.error('Error joining game:', error);
+          toast({
+            title: 'Fel',
+            description: error instanceof Error ? error.message : 'Kunde inte gå med i spelet',
+            variant: 'destructive',
+          });
+          setHasTriedJoin(false);
+        } finally {
+          setIsJoining(false);
+        }
+      };
+      
+      doJoin();
     }
-  };
+  }, [isJoining, gameState, isConnected, hasTriedJoin, teamName, joinGame, gameCode, toast, navigate]);
 
   const handleJoin = async () => {
     if (!gameCode.trim() || !teamName.trim()) {
@@ -67,10 +70,7 @@ export default function JoinGame() {
     }
 
     setIsJoining(true);
-    setIsConnecting(true);
-    
-    // The connection will be established by useLocalGame hook
-    // and handleActualJoin will be called via useEffect
+    setHasTriedJoin(false);
   };
 
   return (
