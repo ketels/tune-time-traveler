@@ -46,7 +46,7 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
 
     // CLIENT: Handle team_joined confirmation
     if (!isHost && message.type === 'team_joined') {
-      const { teamId, senderId } = message.payload;
+      const { teamId, senderId, teamName, teamColor } = message.payload;
       const myDeviceId = localStorage.getItem('hitster_device_id');
       
       if (senderId === myDeviceId) {
@@ -54,12 +54,16 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
         setMyTeamId(teamId);
         localStorage.setItem('teamId', teamId);
         
-        if (pendingJoinRef.current && currentGameState) {
-          const team = currentGameState.teams.find(t => t.id === teamId);
-          if (team) {
-            pendingJoinRef.current.resolve(team);
-            pendingJoinRef.current = null;
-          }
+        // Resolve pending join with team data from message (not from state)
+        if (pendingJoinRef.current) {
+          const team: LocalTeam = {
+            id: teamId,
+            name: teamName || pendingJoinRef.current.teamName,
+            color: teamColor || '#8B5CF6',
+            cards: [],
+          };
+          pendingJoinRef.current.resolve(team);
+          pendingJoinRef.current = null;
         }
       }
       return;
@@ -91,6 +95,8 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
       currentBroadcast.broadcastGameState(newState);
       currentBroadcast.sendMessage('team_joined', { 
         teamId: newTeam.id, 
+        teamName: newTeam.name,
+        teamColor: newTeam.color,
         senderId: message.senderId 
       });
     }
