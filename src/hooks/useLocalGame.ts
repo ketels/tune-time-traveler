@@ -29,57 +29,85 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
   const [loading, setLoading] = useState(true);
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   const pendingJoinRef = useRef<{ teamName: string; resolve: (team: LocalTeam) => void } | null>(null);
+  
+  // Store gameState in ref so message handlers can access latest value
+  const gameStateRef = useRef<LocalGameState | null>(null);
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
-  // Handle incoming broadcast messages
+  // Store broadcast ref for use in handleMessage
+  const broadcastRef = useRef<ReturnType<typeof useBroadcast> | null>(null);
+
+  // Handle incoming broadcast messages - stable callback using refs
   const handleMessage = useCallback((message: BroadcastMessage) => {
+    const currentGameState = gameStateRef.current;
+    const currentBroadcast = broadcastRef.current;
+
+    // CLIENT: Handle team_joined confirmation
+    if (!isHost && message.type === 'team_joined') {
+      const { teamId, senderId } = message.payload;
+      const myDeviceId = localStorage.getItem('hitster_device_id');
+      
+      if (senderId === myDeviceId) {
+        console.log('[Client] Join confirmed, my team ID:', teamId);
+        setMyTeamId(teamId);
+        localStorage.setItem('teamId', teamId);
+        
+        if (pendingJoinRef.current && currentGameState) {
+          const team = currentGameState.teams.find(t => t.id === teamId);
+          if (team) {
+            pendingJoinRef.current.resolve(team);
+            pendingJoinRef.current = null;
+          }
+        }
+      }
+      return;
+    }
+
+    // HOST only: handle join requests and other actions
     if (!isHost) return;
 
     // Host handles team join requests
-    if (message.type === 'team_join' && gameState) {
+    if (message.type === 'team_join' && currentGameState && currentBroadcast) {
       const { teamName } = message.payload;
       console.log('[Host] Team join request:', teamName);
       
-      const newState = addTeamToGame(gameState, teamName);
+      const newState = addTeamToGame(currentGameState, teamName);
       const newTeam = newState.teams[newState.teams.length - 1];
       
       setGameState(newState);
       saveGameState(newState);
       
       // Broadcast updated state with team confirmation
-      broadcast.broadcastGameState(newState);
-      broadcast.sendMessage('team_joined', { 
+      currentBroadcast.broadcastGameState(newState);
+      currentBroadcast.sendMessage('team_joined', { 
         teamId: newTeam.id, 
         senderId: message.senderId 
       });
     }
 
     // Host handles guess submissions
-    if (message.type === 'guess' && gameState?.currentRound) {
+    if (message.type === 'guess' && currentGameState?.currentRound) {
       console.log('[Host] Received guess:', message.payload);
       // Guess handling is done through explicit function calls from PlayerView
     }
 
     // Host handles pass requests
-    if (message.type === 'pass' && gameState) {
+    if (message.type === 'pass' && currentGameState && currentBroadcast) {
       console.log('[Host] Team passed');
-      const newState = passTurnState(gameState);
+      const newState = passTurnState(currentGameState);
       setGameState(newState);
       saveGameState(newState);
-      broadcast.broadcastGameState(newState);
+      currentBroadcast.broadcastGameState(newState);
     }
-  }, [isHost, gameState]);
+  }, [isHost]); // Only depends on isHost
 
   // Handle game state updates for non-hosts
   const handleGameStateUpdate = useCallback((state: LocalGameState) => {
     console.log('[Client] Received game state update:', state.status);
     setGameState(state);
     setLoading(false);
-
-    // Check if our pending join was confirmed
-    if (pendingJoinRef.current) {
-      const myDeviceId = localStorage.getItem('hitster_device_id');
-      // Find the team that was just added (we'll match by checking team_joined message)
-    }
   }, []);
 
   const broadcast = useBroadcast({
@@ -88,34 +116,11 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
     onMessage: handleMessage,
     onGameState: handleGameStateUpdate,
   });
-
-  // Handle team_joined confirmation for clients
+  
+  // Store broadcast in ref for message handlers
   useEffect(() => {
-    if (isHost) return;
-
-    const handleJoinConfirmation = (message: BroadcastMessage) => {
-      if (message.type === 'team_joined') {
-        const { teamId, senderId } = message.payload;
-        const myDeviceId = localStorage.getItem('hitster_device_id');
-        
-        if (senderId === myDeviceId) {
-          console.log('[Client] Join confirmed, my team ID:', teamId);
-          setMyTeamId(teamId);
-          localStorage.setItem('teamId', teamId);
-          
-          if (pendingJoinRef.current && gameState) {
-            const team = gameState.teams.find(t => t.id === teamId);
-            if (team) {
-              pendingJoinRef.current.resolve(team);
-              pendingJoinRef.current = null;
-            }
-          }
-        }
-      }
-    };
-
-    // This is handled in the main message handler, but we need to track team_joined
-  }, [isHost, gameState]);
+    broadcastRef.current = broadcast;
+  }, [broadcast]);
 
   // Initialize game state
   useEffect(() => {
