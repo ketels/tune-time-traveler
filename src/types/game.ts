@@ -30,6 +30,7 @@ export interface Card {
   release_year: number;
   spotify_uri: string | null;
   is_start_card: boolean;
+  is_locked?: boolean;
   created_at: string;
 }
 

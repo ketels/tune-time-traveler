@@ -7,6 +7,7 @@ export interface LocalCard {
   releaseYear: number;
   spotifyUri: string | null;
   isStartCard: boolean;
+  isLocked: boolean;
 }
 
 export interface LocalTeam {
@@ -65,13 +66,6 @@ export function generateGameCode(): string {
   return code;
 }
 
-// Generate a random start year for initial card
-export function getRandomStartYear(): number {
-  const decades = [1960, 1970, 1980, 1990, 2000, 2010, 2020];
-  const decade = decades[Math.floor(Math.random() * decades.length)];
-  return decade + Math.floor(Math.random() * 10);
-}
-
 // Create initial game state
 export function createInitialGameState(musicFilter: { decades: string[]; genres: string[] }): LocalGameState {
   return {
@@ -88,8 +82,15 @@ export function createInitialGameState(musicFilter: { decades: string[]; genres:
 export function addTeamToGame(state: LocalGameState, teamName: string): LocalGameState {
   const usedColors = state.teams.map(t => t.color);
   const availableColor = TEAM_COLORS.find(c => !usedColors.includes(c)) || TEAM_COLORS[0];
-  
-  const startYear = getRandomStartYear();
+
+  // Generate start year from selected decades, or all decades if none selected
+  const selectedDecades = state.musicFilter.decades.length > 0
+    ? state.musicFilter.decades.map(d => parseInt(d))
+    : [1960, 1970, 1980, 1990, 2000, 2010, 2020];
+
+  const decade = selectedDecades[Math.floor(Math.random() * selectedDecades.length)];
+  const startYear = decade + Math.floor(Math.random() * 10);
+
   const newTeam: LocalTeam = {
     id: crypto.randomUUID(),
     name: teamName,
@@ -101,6 +102,7 @@ export function addTeamToGame(state: LocalGameState, teamName: string): LocalGam
       releaseYear: startYear,
       spotifyUri: null,
       isStartCard: true,
+      isLocked: true,
     }],
   };
 
@@ -156,7 +158,7 @@ export function revealSong(state: LocalGameState): LocalGameState {
 // Handle correct guess - add card to team
 export function handleCorrectGuess(state: LocalGameState): LocalGameState {
   if (!state.currentRound || !state.currentTeamId) return state;
-  
+
   const newCard: LocalCard = {
     id: crypto.randomUUID(),
     songName: state.currentRound.song.name,
@@ -164,14 +166,15 @@ export function handleCorrectGuess(state: LocalGameState): LocalGameState {
     releaseYear: state.currentRound.song.year,
     spotifyUri: state.currentRound.song.uri,
     isStartCard: false,
+    isLocked: false, // New cards are unlocked until team passes or turn ends
   };
 
   const consecutiveCorrect = (state.currentRound.consecutiveCorrect || 0) + 1;
 
   return {
     ...state,
-    teams: state.teams.map(team => 
-      team.id === state.currentTeamId 
+    teams: state.teams.map(team =>
+      team.id === state.currentTeamId
         ? { ...team, cards: [...team.cards, newCard] }
         : team
     ),
@@ -182,27 +185,18 @@ export function handleCorrectGuess(state: LocalGameState): LocalGameState {
   };
 }
 
-// Handle wrong guess - possibly remove last won card and switch team
+// Handle wrong guess - remove ALL unlocked cards and switch team
 export function handleWrongGuess(state: LocalGameState): LocalGameState {
   if (!state.currentRound || !state.currentTeamId) return state;
-  
-  const consecutiveCorrect = state.currentRound.consecutiveCorrect || 0;
-  
-  // Remove last won card if they had consecutive correct guesses
-  let updatedTeams = state.teams;
-  if (consecutiveCorrect > 0) {
-    updatedTeams = state.teams.map(team => {
-      if (team.id === state.currentTeamId) {
-        const nonStartCards = team.cards.filter(c => !c.isStartCard);
-        if (nonStartCards.length > 0) {
-          // Remove the last non-start card
-          const lastCardId = nonStartCards[nonStartCards.length - 1].id;
-          return { ...team, cards: team.cards.filter(c => c.id !== lastCardId) };
-        }
-      }
-      return team;
-    });
-  }
+
+  // Remove ALL unlocked cards from current team
+  const updatedTeams = state.teams.map(team => {
+    if (team.id === state.currentTeamId) {
+      // Keep only locked cards (start cards and previously locked cards)
+      return { ...team, cards: team.cards.filter(c => c.isLocked) };
+    }
+    return team;
+  });
 
   // Switch to next team
   const currentIndex = state.teams.findIndex(t => t.id === state.currentTeamId);
@@ -217,16 +211,28 @@ export function handleWrongGuess(state: LocalGameState): LocalGameState {
   };
 }
 
-// Pass turn to next team
+// Pass turn to next team - locks all cards for current team
 export function passTurn(state: LocalGameState): LocalGameState {
   if (!state.currentTeamId) return state;
-  
+
+  // Lock all cards for the current team before passing
+  const updatedTeams = state.teams.map(team => {
+    if (team.id === state.currentTeamId) {
+      return {
+        ...team,
+        cards: team.cards.map(card => ({ ...card, isLocked: true }))
+      };
+    }
+    return team;
+  });
+
   const currentIndex = state.teams.findIndex(t => t.id === state.currentTeamId);
   const nextIndex = (currentIndex + 1) % state.teams.length;
   const nextTeamId = state.teams[nextIndex].id;
 
   return {
     ...state,
+    teams: updatedTeams,
     currentTeamId: nextTeamId,
     currentRound: null,
   };

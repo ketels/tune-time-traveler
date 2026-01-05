@@ -115,6 +115,41 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
       saveGameState(newState);
       currentBroadcast.broadcastGameState(newState);
     }
+
+    // Host handles continue requests (fetch new song)
+    if (message.type === 'continue' && currentGameState && currentBroadcast) {
+      console.log('[Host] Team continuing - fetching new song');
+
+      // Fetch new song
+      const { decades, genres } = currentGameState.musicFilter;
+      const decade = decades.length > 0 ? decades[Math.floor(Math.random() * decades.length)] : null;
+
+      const currentTeam = currentGameState.teams.find(t => t.id === currentGameState.currentTeamId);
+      const excludeYears = currentTeam?.cards.map(c => c.releaseYear) || [];
+
+      supabase.functions.invoke('spotify', {
+        body: { action: 'search', decade, genres, excludeYears },
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to fetch song:', error);
+          return;
+        }
+
+        const song = {
+          name: data.name,
+          artist: data.artist,
+          year: data.year,
+          uri: data.uri,
+          previewUrl: data.previewUrl || null,
+          albumImage: data.albumImage || null,
+        };
+
+        const newState = setCurrentRound(currentGameState, song);
+        setGameState(newState);
+        saveGameState(newState);
+        currentBroadcast.broadcastGameState(newState);
+      });
+    }
   }, [isHost]); // Only depends on isHost
 
   // Handle game state updates for non-hosts

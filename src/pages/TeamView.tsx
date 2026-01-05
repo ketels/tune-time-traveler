@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocalGame } from '@/hooks/useLocalGame';
 import { Timeline } from '@/components/Timeline';
-import { Clock, SkipForward } from 'lucide-react';
+import { Clock, SkipForward, Music } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function TeamView() {
@@ -12,13 +12,14 @@ export default function TeamView() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const { 
-    gameState, 
-    loading, 
+  const {
+    gameState,
+    loading,
     myTeam,
     isMyTurn,
     currentTeam,
     requestPass,
+    continueGame,
   } = useLocalGame({ gameCode, isHost: false });
 
   const [selectedPosition, setSelectedPosition] = useState<{
@@ -49,11 +50,42 @@ export default function TeamView() {
     setSelectedPosition(position);
   };
 
+  const handleTimelinePositionSelect = (beforeYear: number | null, afterYear: number | null) => {
+    if (!myTeam) return;
+
+    // Find the card IDs based on years
+    const beforeCard = beforeYear ? myTeam.cards.find(c => c.releaseYear === beforeYear) : null;
+    const afterCard = afterYear ? myTeam.cards.find(c => c.releaseYear === afterYear) : null;
+
+    if (!beforeCard && !afterCard) {
+      // Position before first card
+      const firstCard = [...myTeam.cards].sort((a, b) => a.releaseYear - b.releaseYear)[0];
+      if (firstCard) {
+        setSelectedPosition({ type: 'before', referenceId: firstCard.id });
+      }
+    } else if (beforeCard && !afterCard) {
+      // Position after last card
+      setSelectedPosition({ type: 'after', referenceId: beforeCard.id });
+    } else if (beforeCard && afterCard) {
+      // Position between two cards
+      setSelectedPosition({ type: 'between', referenceId: beforeCard.id, secondId: afterCard.id });
+    }
+  };
+
   const handlePass = () => {
     requestPass();
     toast({
       title: 'Passade',
       description: 'Nästa lag får gissa',
+    });
+  };
+
+  const handleContinue = () => {
+    setSelectedPosition(null);
+    continueGame();
+    toast({
+      title: 'Fortsätter',
+      description: 'Ny låt på väg!',
     });
   };
 
@@ -81,6 +113,14 @@ export default function TeamView() {
 
   const currentRound = gameState.currentRound;
   const isRevealed = currentRound?.isRevealed || false;
+
+  // Check if we just got points (revealed song that's now in our cards as unlocked)
+  const hasGottenPoints = isMyTurn && currentRound && isRevealed && myTeam &&
+    myTeam.cards.some(card =>
+      card.songName === currentRound.song.name &&
+      card.artistName === currentRound.song.artist &&
+      !card.isLocked
+    );
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -112,7 +152,7 @@ export default function TeamView() {
             <CardTitle className="text-lg">Din tidslinje</CardTitle>
           </CardHeader>
           <CardContent>
-            <Timeline 
+            <Timeline
               cards={myTeam.cards.map(c => ({
                 id: c.id,
                 song_name: c.songName,
@@ -120,51 +160,77 @@ export default function TeamView() {
                 release_year: c.releaseYear,
                 spotify_uri: c.spotifyUri,
                 is_start_card: c.isStartCard,
+                is_locked: c.isLocked,
                 team_id: myTeam.id,
                 created_at: '',
               }))}
               isInteractive={isMyTurn && !isRevealed}
-              selectedPosition={selectedPosition ? {
-                before: null,
-                after: null,
-              } : null}
-              onSelectPosition={() => {}}
+              selectedPosition={selectedPosition ? (() => {
+                // Map internal position format to Timeline's expected format
+                if (selectedPosition.type === 'before') {
+                  // Position before first card: before=null, after=firstCard
+                  const card = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
+                  return { before: null, after: card?.releaseYear || null };
+                } else if (selectedPosition.type === 'after') {
+                  // Position after last card: before=lastCard, after=null
+                  const card = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
+                  return { before: card?.releaseYear || null, after: null };
+                } else if (selectedPosition.type === 'between') {
+                  // Position between two cards: before=card1, after=card2
+                  const beforeCard = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
+                  const afterCard = myTeam.cards.find(c => c.id === selectedPosition.secondId);
+                  return {
+                    before: beforeCard?.releaseYear || null,
+                    after: afterCard?.releaseYear || null
+                  };
+                }
+                return null;
+              })() : null}
+              onSelectPosition={handleTimelinePositionSelect}
             />
           </CardContent>
         </Card>
 
         {/* Current Round Info */}
-        {isMyTurn && currentRound && (
+        {currentRound && (
           <Card className={`glass ${isRevealed ? 'ring-2 ring-primary' : ''}`}>
             <CardContent className="py-6">
-              {!isRevealed ? (
+              {!isRevealed && isMyTurn ? (
                 <div className="text-center">
                   <Clock className="w-12 h-12 mx-auto text-primary mb-4 animate-pulse" />
                   <p className="text-lg font-semibold">Lyssna på låten</p>
                   <p className="text-muted-foreground mt-2">
                     Placera den i din tidslinje
                   </p>
-                  
-                  {selectedPosition && (
+
+                  {selectedPosition && myTeam && (
                     <div className="mt-4 p-3 bg-primary/20 rounded-lg">
                       <p className="text-sm text-primary">
-                        Vald position: {
-                          selectedPosition.type === 'before' ? 'Före' :
-                          selectedPosition.type === 'after' ? 'Efter' :
-                          'Mellan'
-                        }
+                        {(() => {
+                          const refCard = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
+                          const secondCard = selectedPosition.secondId
+                            ? myTeam.cards.find(c => c.id === selectedPosition.secondId)
+                            : null;
+
+                          if (selectedPosition.type === 'before') {
+                            return `Valt: före ${refCard?.releaseYear || '?'}`;
+                          } else if (selectedPosition.type === 'after') {
+                            return `Valt: efter ${refCard?.releaseYear || '?'}`;
+                          } else {
+                            return `Valt: mellan ${refCard?.releaseYear || '?'} och ${secondCard?.releaseYear || '?'}`;
+                          }
+                        })()}
                       </p>
                     </div>
                   )}
-                  
-                  <Button
-                    variant="outline"
-                    onClick={handlePass}
-                    className="mt-4"
-                  >
-                    <SkipForward className="w-4 h-4 mr-2" />
-                    Passa
-                  </Button>
+                </div>
+              ) : !isRevealed && !isMyTurn ? (
+                <div className="text-center">
+                  <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-semibold">{currentTeam?.name} gissar</p>
+                  <p className="text-muted-foreground mt-2">
+                    Vänta på din tur...
+                  </p>
                 </div>
               ) : (
                 <div className="text-center">
@@ -173,10 +239,35 @@ export default function TeamView() {
                   <p className="text-3xl font-mono font-bold text-primary mt-4">
                     {currentRound.song.year}
                   </p>
-                  
-                  <p className="text-sm text-muted-foreground mt-4">
-                    Värden bedömer ditt svar...
-                  </p>
+
+                  {hasGottenPoints ? (
+                    <div className="mt-6 space-y-3">
+                      <p className="text-sm text-green-600 font-semibold">
+                        Rätt! Du fick kortet
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={handlePass}
+                          className="w-full"
+                        >
+                          <SkipForward className="w-4 h-4 mr-2" />
+                          Passa
+                        </Button>
+                        <Button
+                          onClick={handleContinue}
+                          className="w-full bg-gradient-primary hover:opacity-90"
+                        >
+                          <Music className="w-4 h-4 mr-2" />
+                          Fortsätt
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      {isMyTurn ? 'Värden bedömer ditt svar...' : `${currentTeam?.name} gissar...`}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>

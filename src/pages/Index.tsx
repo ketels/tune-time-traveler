@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Music, Users, Smartphone } from 'lucide-react';
+import { Music } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -33,18 +33,6 @@ const Index = () => {
             <p className="text-muted-foreground text-lg">
               Gissa när låten släpptes och bygg din tidslinje!
             </p>
-          </div>
-
-          {/* Features */}
-          <div className="grid grid-cols-2 gap-4 py-6">
-            <div className="glass rounded-xl p-4 text-center">
-              <Users className="w-8 h-8 mx-auto text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Spela i lag</p>
-            </div>
-            <div className="glass rounded-xl p-4 text-center">
-              <Smartphone className="w-8 h-8 mx-auto text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Var som helst</p>
-            </div>
           </div>
 
           {/* Buttons */}

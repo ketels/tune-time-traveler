@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,8 @@ export default function PlayerView() {
   const { gameCode } = useParams<{ gameCode: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [canPass, setCanPass] = useState(false);
 
   const { 
     gameState, 
@@ -34,6 +36,7 @@ export default function PlayerView() {
   const handleFetchSong = async () => {
     try {
       await fetchNewSong();
+      setCanPass(false); // Cannot pass after fetching new song
       toast({
         title: 'Ny låt!',
         description: 'Spela upp och låt laget gissa',
@@ -52,27 +55,40 @@ export default function PlayerView() {
   };
 
   const handleCorrect = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     handleCorrectGuess();
+    setCanPass(true); // Can pass after getting points
     toast({
       title: 'Rätt!',
       description: `${currentTeam?.name} får kortet`,
     });
+    // Reset after a short delay to allow state to update
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleWrong = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     handleWrongGuess();
+    setCanPass(false); // Reset after wrong guess
     toast({
       title: 'Fel!',
       description: 'Nästa lag får gissa',
     });
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handlePass = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     passTurn();
+    setCanPass(false); // Reset after passing
     toast({
       title: 'Passade',
       description: 'Nästa lag får gissa',
     });
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleEndGame = () => {
@@ -125,12 +141,13 @@ export default function PlayerView() {
         {/* Audio Player / Fetch Song */}
         {currentRound ? (
           <AudioPlayer
-            previewUrl={currentRound.song.previewUrl}
             albumImage={currentRound.song.albumImage}
             isRevealed={currentRound.isRevealed}
             songName={currentRound.song.name}
             artistName={currentRound.song.artist}
+            year={currentRound.song.year}
             spotifyUri={currentRound.song.uri}
+            isHost={true}
           />
         ) : (
           <Card className="glass">
@@ -179,6 +196,7 @@ export default function PlayerView() {
                     <Button
                       size="lg"
                       onClick={handleCorrect}
+                      disabled={isProcessing}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Check className="w-5 h-5 mr-2" />
@@ -187,6 +205,7 @@ export default function PlayerView() {
                     <Button
                       size="lg"
                       onClick={handleWrong}
+                      disabled={isProcessing}
                       className="bg-red-600 hover:bg-red-700"
                     >
                       <X className="w-5 h-5 mr-2" />
@@ -196,22 +215,24 @@ export default function PlayerView() {
                 </>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  onClick={handlePass}
-                >
-                  <SkipForward className="w-4 h-4 mr-2" />
-                  Passa
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleFetchSong}
-                >
-                  <Music className="w-4 h-4 mr-2" />
-                  Ny låt
-                </Button>
-              </div>
+              {canPass ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePass}
+                  >
+                    <SkipForward className="w-4 h-4 mr-2" />
+                    Passa
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleFetchSong}
+                  >
+                    <Music className="w-4 h-4 mr-2" />
+                    Fortsätt
+                  </Button>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         )}
