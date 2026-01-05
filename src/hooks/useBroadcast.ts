@@ -31,8 +31,20 @@ export function useBroadcast({ gameCode, isHost, onMessage, onGameState }: UseBr
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const deviceId = useRef(getOrCreateDeviceId());
+  
+  // Store callbacks in refs to avoid re-subscribing on every render
+  const onMessageRef = useRef(onMessage);
+  const onGameStateRef = useRef(onGameState);
+  
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+  
+  useEffect(() => {
+    onGameStateRef.current = onGameState;
+  }, [onGameState]);
 
-  // Subscribe to channel
+  // Subscribe to channel - only re-subscribe when gameCode or isHost changes
   useEffect(() => {
     if (!gameCode) return;
 
@@ -51,13 +63,13 @@ export function useBroadcast({ gameCode, isHost, onMessage, onGameState }: UseBr
         console.log(`[Broadcast] Received:`, message.type, message);
 
         // Handle game state updates for non-hosts
-        if (!isHost && message.type === 'game_state' && onGameState) {
-          onGameState(message.payload as LocalGameState);
+        if (!isHost && message.type === 'game_state' && onGameStateRef.current) {
+          onGameStateRef.current(message.payload as LocalGameState);
         }
 
         // Forward all messages to handler
-        if (onMessage) {
-          onMessage(message);
+        if (onMessageRef.current) {
+          onMessageRef.current(message);
         }
       })
       .subscribe((status) => {
@@ -77,7 +89,7 @@ export function useBroadcast({ gameCode, isHost, onMessage, onGameState }: UseBr
       channelRef.current = null;
       setIsConnected(false);
     };
-  }, [gameCode, isHost, onMessage, onGameState]);
+  }, [gameCode, isHost]); // Only gameCode and isHost - not callbacks
 
   // Send a message
   const sendMessage = useCallback((type: BroadcastMessageType, payload: any) => {
