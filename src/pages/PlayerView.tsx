@@ -6,6 +6,7 @@ import { useLocalGame } from '@/hooks/useLocalGame';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { Music, Trophy, SkipForward, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { loadSpotifyAuth, SpotifyAuthState } from '@/lib/spotifyAuth';
 
 export default function PlayerView() {
   const { gameCode } = useParams<{ gameCode: string }>();
@@ -13,10 +14,11 @@ export default function PlayerView() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [canPass, setCanPass] = useState(false);
+  const [spotifyAuth, setSpotifyAuth] = useState<SpotifyAuthState | null>(null);
 
-  const { 
-    gameState, 
-    loading, 
+  const {
+    gameState,
+    loading,
     currentTeam,
     fetchNewSong,
     revealSong,
@@ -25,6 +27,12 @@ export default function PlayerView() {
     passTurn,
     endGame,
   } = useLocalGame({ gameCode, isHost: true });
+
+  // Load Spotify auth on mount
+  useEffect(() => {
+    const auth = loadSpotifyAuth();
+    setSpotifyAuth(auth);
+  }, []);
 
   // Redirect to results when game ends
   useEffect(() => {
@@ -148,6 +156,7 @@ export default function PlayerView() {
             year={currentRound.song.year}
             spotifyUri={currentRound.song.uri}
             isHost={true}
+            spotifyAuth={spotifyAuth}
           />
         ) : (
           <Card className="glass">
