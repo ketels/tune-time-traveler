@@ -25,7 +25,7 @@ export default function HostLobby() {
     }
   }, [gameState?.status, gameCode, navigate]);
 
-  const joinUrl = `${window.location.origin}/join?code=${gameCode}`;
+  const joinUrl = `${window.location.origin}${import.meta.env.BASE_URL}join?code=${gameCode}`;
 
   const copyCode = async () => {
     try {
