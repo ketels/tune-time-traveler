@@ -20,7 +20,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/tune-time-traveler">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/create" element={<CreateGame />} />
