@@ -252,13 +252,13 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
       pendingJoinRef.current = { teamName, resolve };
       broadcast.requestJoin(teamName);
 
-      // Timeout after 10 seconds
+      // Timeout after 30 seconds (increased for older devices like iPhone 8)
       setTimeout(() => {
         if (pendingJoinRef.current) {
           pendingJoinRef.current = null;
-          reject(new Error('Join request timed out'));
+          reject(new Error('Join request timed out. Please check your internet connection and try again.'));
         }
-      }, 10000);
+      }, 30000);
     });
   }, [broadcast]);
 
