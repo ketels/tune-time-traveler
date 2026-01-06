@@ -25,7 +25,7 @@ Tune Time Traveler supports two playback modes:
    - **App name**: Tune Time Traveler (or any name)
    - **App description**: Music timeline guessing game
    - **Redirect URI**: `https://ketels.github.io/tune-time-traveler/callback`
-     - For local development, also add: `http://localhost:8080/callback`
+     - For local development, also add: `http://127.0.0.1:8080/callback` (Note: Spotify requires 127.0.0.1, not localhost)
    - **API used**: Select "Web Playback SDK"
 5. Click **"Save"**
 
@@ -36,8 +36,10 @@ In your Spotify App settings:
 1. Click **"Edit Settings"**
 2. Under **"Redirect URIs"**, add:
    - Production: `https://ketels.github.io/tune-time-traveler/callback`
-   - Local dev: `http://localhost:8080/callback`
+   - Local dev: `http://127.0.0.1:8080/callback` (Note: Use 127.0.0.1, not localhost)
 3. Click **"Add"** and **"Save"**
+
+**Important**: Spotify does not support `localhost` URLs. Always use `127.0.0.1` for local development.
 
 ### 3. Get Your Client ID
 
@@ -114,7 +116,8 @@ if (useWebPlayback) {
 
 - Make sure the redirect URI in your Spotify App settings **exactly** matches your app URL
 - For GitHub Pages: `https://[username].github.io/[repo-name]/callback`
-- For local dev: `http://localhost:8080/callback`
+- For local dev: `http://127.0.0.1:8080/callback` (NOT `localhost`)
+- Spotify does not support `localhost` URLs - always use `127.0.0.1` instead
 
 ### "Premium Required" Message
 
