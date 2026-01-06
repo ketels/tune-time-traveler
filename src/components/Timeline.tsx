@@ -1,6 +1,7 @@
 import { Card } from '@/types/game';
 import { GameCard } from './GameCard';
 import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, ChevronsLeftRight } from 'lucide-react';
 
 interface TimelineProps {
   cards: Card[];
@@ -57,7 +58,7 @@ export function Timeline({
           )}
           style={{ minWidth: '64px', minHeight: '112px' }}
         >
-          <span className="text-2xl text-muted-foreground pointer-events-none select-none">←</span>
+          <ChevronLeft className="w-8 h-8 text-muted-foreground" />
         </button>
       )}
 
@@ -77,7 +78,7 @@ export function Timeline({
               )}
               style={{ minWidth: '64px', minHeight: '112px' }}
             >
-              <span className="text-2xl text-muted-foreground pointer-events-none select-none">↔</span>
+              <ChevronsLeftRight className="w-8 h-8 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -95,7 +96,7 @@ export function Timeline({
           )}
           style={{ minWidth: '64px', minHeight: '112px' }}
         >
-          <span className="text-2xl text-muted-foreground pointer-events-none select-none">→</span>
+          <ChevronRight className="w-8 h-8 text-muted-foreground" />
         </button>
       )}
     </div>
