@@ -16,12 +16,12 @@ export function GameCard({ card, isActive = false, showDetails = true }: GameCar
       className={cn(
         'relative flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300',
         'min-w-[80px] min-h-[100px]',
-        card.is_start_card
+        card.is_start_card || (!isUnlocked && !card.is_start_card)
           ? 'bg-secondary border-2 border-dashed border-border'
           : isUnlocked
           ? 'glass glow-sm border-2 border-amber-500 opacity-80 shadow-lg shadow-amber-500/50'
           : 'glass glow-sm opacity-80',
-        !card.is_start_card && 'hover:opacity-100',
+        !card.is_start_card && isUnlocked && 'hover:opacity-100',
         isActive && 'ring-2 ring-primary opacity-100'
       )}
     >

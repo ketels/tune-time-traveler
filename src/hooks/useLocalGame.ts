@@ -114,6 +114,41 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
       setGameState(newState);
       saveGameState(newState);
       currentBroadcast.broadcastGameState(newState);
+
+      // Automatically fetch new song for next team
+      setTimeout(async () => {
+        if (newState.currentTeamId) {
+          const { decades, genres } = newState.musicFilter;
+          const decade = decades.length > 0 ? decades[Math.floor(Math.random() * decades.length)] : null;
+
+          const currentTeam = newState.teams.find(t => t.id === newState.currentTeamId);
+          const excludeYears = currentTeam?.cards.map(c => c.releaseYear) || [];
+
+          try {
+            const { data, error } = await supabase.functions.invoke('spotify', {
+              body: { action: 'search', decade, genres, excludeYears },
+            });
+
+            if (error) throw error;
+
+            const song = {
+              name: data.name,
+              artist: data.artist,
+              year: data.year,
+              uri: data.uri,
+              previewUrl: data.previewUrl || null,
+              albumImage: data.albumImage || null,
+            };
+
+            const stateWithSong = setCurrentRound(newState, song);
+            setGameState(stateWithSong);
+            saveGameState(stateWithSong);
+            currentBroadcast.broadcastGameState(stateWithSong);
+          } catch (error) {
+            console.error('Failed to fetch song:', error);
+          }
+        }
+      }, 500);
     }
 
     // Host handles continue requests (fetch new song)
@@ -236,15 +271,13 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
     broadcast.broadcastGameState(newState);
   }, [gameState, broadcast]);
 
-  // Host: Fetch and set a new song for the current round
-  const fetchNewSong = useCallback(async () => {
-    if (!gameState) return null;
-
-    const { decades, genres } = gameState.musicFilter;
+  // Helper function to fetch song for a specific state
+  const fetchNewSongForState = useCallback(async (state: LocalGameState) => {
+    const { decades, genres } = state.musicFilter;
     const decade = decades.length > 0 ? decades[Math.floor(Math.random() * decades.length)] : null;
-    
+
     // Get years to exclude (already on current team's timeline)
-    const currentTeam = gameState.teams.find(t => t.id === gameState.currentTeamId);
+    const currentTeam = state.teams.find(t => t.id === state.currentTeamId);
     const excludeYears = currentTeam?.cards.map(c => c.releaseYear) || [];
 
     try {
@@ -263,7 +296,7 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
         albumImage: data.albumImage || null,
       };
 
-      const newState = setCurrentRound(gameState, song);
+      const newState = setCurrentRound(state, song);
       setGameState(newState);
       saveGameState(newState);
       broadcast.broadcastGameState(newState);
@@ -273,7 +306,13 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
       console.error('Failed to fetch song:', error);
       throw error;
     }
-  }, [gameState, broadcast]);
+  }, [broadcast]);
+
+  // Host: Fetch and set a new song for the current round
+  const fetchNewSong = useCallback(async () => {
+    if (!gameState) return null;
+    return fetchNewSongForState(gameState);
+  }, [gameState, fetchNewSongForState]);
 
   // Host: Reveal the current song
   const revealSong = useCallback(() => {
@@ -294,22 +333,36 @@ export function useLocalGame({ gameCode, isHost }: UseLocalGameOptions) {
   }, [gameState, broadcast]);
 
   // Host: Handle wrong guess
-  const handleWrongGuess = useCallback(() => {
+  const handleWrongGuess = useCallback(async () => {
     if (!gameState) return;
     const newState = handleWrongGuessState(gameState);
     setGameState(newState);
     saveGameState(newState);
     broadcast.broadcastGameState(newState);
-  }, [gameState, broadcast]);
+
+    // Automatically fetch new song for next team
+    setTimeout(() => {
+      if (newState.currentTeamId) {
+        fetchNewSongForState(newState);
+      }
+    }, 500);
+  }, [gameState, broadcast, fetchNewSongForState]);
 
   // Host: Pass turn
-  const passTurn = useCallback(() => {
+  const passTurn = useCallback(async () => {
     if (!gameState) return;
     const newState = passTurnState(gameState);
     setGameState(newState);
     saveGameState(newState);
     broadcast.broadcastGameState(newState);
-  }, [gameState, broadcast]);
+
+    // Automatically fetch new song for next team
+    setTimeout(() => {
+      if (newState.currentTeamId) {
+        fetchNewSongForState(newState);
+      }
+    }, 500);
+  }, [gameState, broadcast, fetchNewSongForState]);
 
   // Host: End game
   const endGame = useCallback(() => {

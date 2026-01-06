@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocalGame } from '@/hooks/useLocalGame';
 import { Timeline } from '@/components/Timeline';
-import { Clock, SkipForward, Music } from 'lucide-react';
+import { Clock, SkipForward, Music, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function TeamView() {
@@ -27,6 +27,7 @@ export default function TeamView() {
     referenceId: string;
     secondId?: string;
   } | null>(null);
+  const [isSelectionConfirmed, setIsSelectionConfirmed] = useState(false);
 
   // Redirect based on game status
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function TeamView() {
   // Reset selection when round changes
   useEffect(() => {
     setSelectedPosition(null);
+    setIsSelectionConfirmed(false);
   }, [gameState?.currentRound?.id]);
 
   const handlePositionSelect = (position: {
@@ -53,22 +55,29 @@ export default function TeamView() {
   const handleTimelinePositionSelect = (beforeYear: number | null, afterYear: number | null) => {
     if (!myTeam) return;
 
+    // Reset confirmation when changing selection
+    setIsSelectionConfirmed(false);
+
     // Find the card IDs based on years
     const beforeCard = beforeYear ? myTeam.cards.find(c => c.releaseYear === beforeYear) : null;
     const afterCard = afterYear ? myTeam.cards.find(c => c.releaseYear === afterYear) : null;
 
-    if (!beforeCard && !afterCard) {
-      // Position before first card
-      const firstCard = [...myTeam.cards].sort((a, b) => a.releaseYear - b.releaseYear)[0];
-      if (firstCard) {
-        setSelectedPosition({ type: 'before', referenceId: firstCard.id });
-      }
+    console.log('handleTimelinePositionSelect:', { beforeYear, afterYear, beforeCard, afterCard });
+
+    if (!beforeCard && afterCard) {
+      // Position before first card (no card before, but there is a card after)
+      console.log('Setting position BEFORE card:', afterCard.id);
+      setSelectedPosition({ type: 'before', referenceId: afterCard.id });
     } else if (beforeCard && !afterCard) {
       // Position after last card
+      console.log('Setting position AFTER card:', beforeCard.id);
       setSelectedPosition({ type: 'after', referenceId: beforeCard.id });
     } else if (beforeCard && afterCard) {
       // Position between two cards
+      console.log('Setting position BETWEEN cards:', beforeCard.id, afterCard.id);
       setSelectedPosition({ type: 'between', referenceId: beforeCard.id, secondId: afterCard.id });
+    } else {
+      console.log('No valid position found');
     }
   };
 
@@ -86,6 +95,14 @@ export default function TeamView() {
     toast({
       title: 'Fortsätter',
       description: 'Ny låt på väg!',
+    });
+  };
+
+  const handleConfirmSelection = () => {
+    setIsSelectionConfirmed(true);
+    toast({
+      title: 'Val bekräftat',
+      description: 'Väntar på att värden visar låten',
     });
   };
 
@@ -164,7 +181,7 @@ export default function TeamView() {
                 team_id: myTeam.id,
                 created_at: '',
               }))}
-              isInteractive={isMyTurn && !isRevealed}
+              isInteractive={isMyTurn && !isRevealed && !isSelectionConfirmed}
               selectedPosition={selectedPosition ? (() => {
                 // Map internal position format to Timeline's expected format
                 if (selectedPosition.type === 'before') {
@@ -204,23 +221,44 @@ export default function TeamView() {
                   </p>
 
                   {selectedPosition && myTeam && (
-                    <div className="mt-4 p-3 bg-primary/20 rounded-lg">
-                      <p className="text-sm text-primary">
-                        {(() => {
-                          const refCard = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
-                          const secondCard = selectedPosition.secondId
-                            ? myTeam.cards.find(c => c.id === selectedPosition.secondId)
-                            : null;
+                    <div className="mt-4 space-y-3">
+                      <div className={`p-3 rounded-lg ${isSelectionConfirmed ? 'bg-green-600/20 border border-green-600' : 'bg-primary/20'}`}>
+                        <p className={`text-sm font-semibold ${isSelectionConfirmed ? 'text-green-600' : 'text-primary'}`}>
+                          {(() => {
+                            const refCard = myTeam.cards.find(c => c.id === selectedPosition.referenceId);
+                            const secondCard = selectedPosition.secondId
+                              ? myTeam.cards.find(c => c.id === selectedPosition.secondId)
+                              : null;
 
-                          if (selectedPosition.type === 'before') {
-                            return `Valt: före ${refCard?.releaseYear || '?'}`;
-                          } else if (selectedPosition.type === 'after') {
-                            return `Valt: efter ${refCard?.releaseYear || '?'}`;
-                          } else {
-                            return `Valt: mellan ${refCard?.releaseYear || '?'} och ${secondCard?.releaseYear || '?'}`;
-                          }
-                        })()}
-                      </p>
+                            if (selectedPosition.type === 'before') {
+                              return `Valt: före ${refCard?.releaseYear || '?'}`;
+                            } else if (selectedPosition.type === 'after') {
+                              return `Valt: efter ${refCard?.releaseYear || '?'}`;
+                            } else {
+                              return `Valt: mellan ${refCard?.releaseYear || '?'} och ${secondCard?.releaseYear || '?'}`;
+                            }
+                          })()}
+                        </p>
+                        {!isSelectionConfirmed && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Du kan ändra ditt val genom att klicka på en annan pil
+                          </p>
+                        )}
+                      </div>
+                      {!isSelectionConfirmed && (
+                        <Button
+                          onClick={handleConfirmSelection}
+                          className="w-full bg-gradient-primary hover:opacity-90"
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Bekräfta val
+                        </Button>
+                      )}
+                      {isSelectionConfirmed && (
+                        <p className="text-sm text-center text-muted-foreground">
+                          Väntar på att värden visar låten...
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

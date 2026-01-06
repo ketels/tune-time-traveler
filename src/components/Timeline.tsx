@@ -18,11 +18,13 @@ export function Timeline({
   const sortedCards = [...cards].sort((a, b) => a.release_year - b.release_year);
 
   const handlePositionClick = (index: number) => {
+    console.log('Timeline position clicked:', index, 'isInteractive:', isInteractive);
     if (!onSelectPosition || !isInteractive) return;
 
     const beforeCard = sortedCards[index - 1];
     const afterCard = sortedCards[index];
 
+    console.log('Calling onSelectPosition with:', beforeCard?.release_year, afterCard?.release_year);
     onSelectPosition(
       beforeCard ? beforeCard.release_year : null,
       afterCard ? afterCard.release_year : null
@@ -48,13 +50,14 @@ export function Timeline({
         <button
           onClick={() => handlePositionClick(0)}
           className={cn(
-            'flex-shrink-0 w-12 h-24 rounded-lg border-2 border-dashed transition-all',
+            'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
             isPositionSelected(0)
               ? 'border-primary bg-primary/20'
               : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
           )}
+          style={{ minWidth: '64px', minHeight: '112px' }}
         >
-          <span className="text-xs text-muted-foreground">←</span>
+          <span className="text-2xl text-muted-foreground pointer-events-none select-none">←</span>
         </button>
       )}
 
@@ -67,13 +70,14 @@ export function Timeline({
             <button
               onClick={() => handlePositionClick(index + 1)}
               className={cn(
-                'flex-shrink-0 w-12 h-24 rounded-lg border-2 border-dashed transition-all',
+                'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
                 isPositionSelected(index + 1)
                   ? 'border-primary bg-primary/20'
                   : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
               )}
+              style={{ minWidth: '64px', minHeight: '112px' }}
             >
-              <span className="text-xs text-muted-foreground">↔</span>
+              <span className="text-2xl text-muted-foreground pointer-events-none select-none">↔</span>
             </button>
           )}
         </div>
@@ -84,13 +88,14 @@ export function Timeline({
         <button
           onClick={() => handlePositionClick(sortedCards.length)}
           className={cn(
-            'flex-shrink-0 w-12 h-24 rounded-lg border-2 border-dashed transition-all',
+            'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
             isPositionSelected(sortedCards.length)
               ? 'border-primary bg-primary/20'
               : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
           )}
+          style={{ minWidth: '64px', minHeight: '112px' }}
         >
-          <span className="text-xs text-muted-foreground">→</span>
+          <span className="text-2xl text-muted-foreground pointer-events-none select-none">→</span>
         </button>
       )}
     </div>
