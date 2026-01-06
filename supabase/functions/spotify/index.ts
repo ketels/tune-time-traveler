@@ -26,15 +26,27 @@ async function getSpotifyToken(): Promise<string> {
 async function searchTrack(token: string, decade: string, genres: string[], excludeYears: number[]): Promise<any> {
   const market = 'SE';
 
-  const pickFromTracks = (tracks: any[], requirePreview: boolean) => {
+  const pickFromTracks = (tracks: any[], requirePreview: boolean, minPopularity: number = 0) => {
     const yearOk = (track: any) => {
       const releaseYear = new Date(track.album.release_date).getFullYear();
       return !excludeYears.includes(releaseYear);
     };
 
-    const candidates = tracks.filter((t: any) => yearOk(t) && (!requirePreview || !!t.preview_url));
+    // Filter by year, preview (if required), and popularity
+    let candidates = tracks.filter((t: any) =>
+      yearOk(t) &&
+      (!requirePreview || !!t.preview_url) &&
+      (t.popularity || 0) >= minPopularity
+    );
+
     if (candidates.length === 0) return null;
-    return candidates[Math.floor(Math.random() * candidates.length)];
+
+    // Sort by popularity (highest first) and pick from top candidates
+    candidates.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+
+    // Pick randomly from top 20% to balance popularity with variety
+    const topCandidates = candidates.slice(0, Math.max(1, Math.ceil(candidates.length * 0.2)));
+    return topCandidates[Math.floor(Math.random() * topCandidates.length)];
   };
 
   const doSearch = async (q: string, offset: number) => {
@@ -66,38 +78,62 @@ async function searchTrack(token: string, decade: string, genres: string[], excl
 
   let fallbackTrack: any | null = null;
 
-  // Try a few pages to increase chance of finding a preview_url
-  for (let attempt = 0; attempt < 5; attempt++) {
+  // Try with high popularity first (50+)
+  for (let attempt = 0; attempt < 3; attempt++) {
     const randomOffset = Math.floor(Math.random() * 200);
-    console.log('Searching with query:', baseQuery, 'offset:', randomOffset, 'market:', market, 'attempt:', attempt + 1);
+    console.log('Searching with query:', baseQuery, 'offset:', randomOffset, 'market:', market, 'popularity: 50+', 'attempt:', attempt + 1);
 
     const items = await doSearch(baseQuery, randomOffset);
     if (!items.length) continue;
 
-    const withPreview = pickFromTracks(items, true);
-    if (withPreview) return withPreview;
-
-    if (!fallbackTrack) {
-      fallbackTrack = pickFromTracks(items, false);
+    const withPreview = pickFromTracks(items, true, 50);
+    if (withPreview) {
+      console.log('Found popular track:', withPreview.name, 'popularity:', withPreview.popularity);
+      return withPreview;
     }
   }
 
-  // Broader fallback search (still tries to find preview first)
+  // Try with medium popularity (30+)
   for (let attempt = 0; attempt < 3; attempt++) {
     const randomOffset = Math.floor(Math.random() * 200);
-    console.log('Fallback search with random char:', randomChar, 'offset:', randomOffset, 'market:', market, 'attempt:', attempt + 1);
+    console.log('Searching with query:', baseQuery, 'offset:', randomOffset, 'market:', market, 'popularity: 30+', 'attempt:', attempt + 1);
 
-    const items = await doSearch(randomChar, randomOffset);
+    const items = await doSearch(baseQuery, randomOffset);
     if (!items.length) continue;
 
-    const withPreview = pickFromTracks(items, true);
-    if (withPreview) return withPreview;
+    const withPreview = pickFromTracks(items, true, 30);
+    if (withPreview) {
+      console.log('Found medium popular track:', withPreview.name, 'popularity:', withPreview.popularity);
+      return withPreview;
+    }
 
     if (!fallbackTrack) {
-      fallbackTrack = pickFromTracks(items, false);
+      fallbackTrack = pickFromTracks(items, false, 30);
     }
   }
 
+  // Final fallback: any track with preview
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const randomOffset = Math.floor(Math.random() * 200);
+    console.log('Fallback search, any popularity, offset:', randomOffset);
+
+    const items = await doSearch(baseQuery, randomOffset);
+    if (!items.length) continue;
+
+    const withPreview = pickFromTracks(items, true, 0);
+    if (withPreview) {
+      console.log('Found fallback track:', withPreview.name, 'popularity:', withPreview.popularity);
+      return withPreview;
+    }
+
+    if (!fallbackTrack) {
+      fallbackTrack = pickFromTracks(items, false, 0);
+    }
+  }
+
+  if (fallbackTrack) {
+    console.log('Returning fallback track:', fallbackTrack.name, 'popularity:', fallbackTrack.popularity);
+  }
   return fallbackTrack;
 }
 
