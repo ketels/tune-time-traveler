@@ -12,7 +12,17 @@ Tune Time Traveler supports two playback modes:
 ## Requirements
 
 - Spotify Premium account
-- Spotify Developer App credentials
+- Spotify Developer App credentials (Client ID and Client Secret)
+- Supabase project (for token exchange edge function)
+
+## Important: OAuth Migration (November 2025)
+
+⚠️ **Spotify removed support for Implicit Grant flow on November 27, 2025.**
+
+This app now uses **Authorization Code with PKCE**, which requires:
+- HTTPS redirect URIs (HTTP only works for 127.0.0.1 in local dev)
+- A backend endpoint to exchange authorization code for access token
+- Client Secret stored securely on the backend
 
 ## Setup Steps
 
@@ -33,26 +43,54 @@ Tune Time Traveler supports two playback modes:
 
 In your Spotify App settings:
 
-1. Click **"Edit Settings"**
+1. Click **"Settings"** (or **"Edit Settings"** depending on UI)
 2. Under **"Redirect URIs"**, add:
    - Production: `https://ketels.github.io/tune-time-traveler/callback`
-   - Local dev: `http://127.0.0.1:8080/callback` (Note: Use 127.0.0.1, not localhost)
+   - Local dev: `http://127.0.0.1:8081/tune-time-traveler/callback`
+   - PR Previews: `https://ketels.github.io/tune-time-traveler/pr-*/callback` (use wildcard pattern)
 3. Click **"Add"** and **"Save"**
 
-**Important**: Spotify does not support `localhost` URLs. Always use `127.0.0.1` for local development.
+**Important Notes:**
+- For production, HTTPS is required (GitHub Pages works)
+- For local dev, use `127.0.0.1` (NOT `localhost`)
+- Include the full path with base URL: `/tune-time-traveler/callback`
+- Port 8081 is used in dev (Vite default when 8080 is busy)
+- For PR previews, you can either:
+  - Add a wildcard pattern (if Spotify supports it)
+  - Add specific PR preview URLs manually when testing (e.g., `/pr-123/callback`)
 
-### 3. Get Your Client ID
+### 3. Get Client Credentials
 
-1. In your Spotify App dashboard, copy the **Client ID**
-2. Add it to your `.env` file:
+1. In your Spotify App dashboard, copy:
+   - **Client ID**
+   - **Client Secret** (click "Show Client Secret")
+
+2. Add to `.env` file:
 
 ```env
 VITE_SPOTIFY_CLIENT_ID="your-client-id-here"
 ```
 
-### 4. Update GitHub Actions (for deployment)
+3. Add to Supabase Edge Function secrets:
 
-If deploying to GitHub Pages, add the Spotify Client ID to your repository secrets:
+```bash
+# Set Supabase secrets for edge function
+npx supabase secrets set SPOTIFY_CLIENT_ID="your-client-id"
+npx supabase secrets set SPOTIFY_CLIENT_SECRET="your-client-secret"
+```
+
+### 4. Deploy Supabase Edge Function
+
+The app uses a Supabase Edge Function to exchange authorization codes for tokens:
+
+```bash
+# Deploy the spotify-token edge function
+npx supabase functions deploy spotify-token
+```
+
+### 5. Update GitHub Actions (for deployment)
+
+Add Spotify Client ID to your repository variables:
 
 1. Go to your GitHub repository
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
@@ -60,6 +98,8 @@ If deploying to GitHub Pages, add the Spotify Client ID to your repository secre
 4. Name: `VITE_SPOTIFY_CLIENT_ID`
 5. Value: Your Spotify Client ID
 6. Click **"Add variable"**
+
+**Note:** Client Secret stays in Supabase, NOT in GitHub.
 
 ## Usage
 
@@ -80,14 +120,22 @@ If deploying to GitHub Pages, add the Spotify Client ID to your repository secre
 
 ## Technical Details
 
-### OAuth Flow
+### OAuth Flow (Authorization Code with PKCE)
 
 1. User clicks "Logga in med Spotify Premium" in CreateGame
-2. Redirected to Spotify OAuth (Implicit Grant Flow)
-3. User authorizes the app
-4. Redirected back to `/callback` with access token
-5. Token stored in localStorage (expires after 1 hour)
-6. Premium status checked via Spotify API
+2. Client generates PKCE code_verifier and code_challenge
+3. Redirected to Spotify OAuth with code_challenge
+4. User authorizes the app
+5. Redirected back to `/callback` with authorization code
+6. Client sends code + code_verifier to Supabase Edge Function
+7. Edge Function exchanges code for access token using Client Secret
+8. Access token returned to client and stored in localStorage
+9. Premium status checked via Spotify API
+
+**Why PKCE?**
+- More secure than Implicit Grant (no token in URL)
+- Protects against authorization code interception
+- Required by Spotify as of November 2025
 
 ### Required Scopes
 
@@ -116,8 +164,15 @@ if (useWebPlayback) {
 
 - Make sure the redirect URI in your Spotify App settings **exactly** matches your app URL
 - For GitHub Pages: `https://[username].github.io/[repo-name]/callback`
-- For local dev: `http://127.0.0.1:8080/callback` (NOT `localhost`)
-- Spotify does not support `localhost` URLs - always use `127.0.0.1` instead
+- For local dev: `http://127.0.0.1:8081/tune-time-traveler/callback`
+- Must include full path with base URL
+- Use `127.0.0.1` instead of `localhost`
+
+### "unsupported_response_type" Error
+
+- This means Implicit Grant is disabled (as of Nov 2025)
+- Ensure you're using the updated code with PKCE
+- Check that spotify-token edge function is deployed
 
 ### "Premium Required" Message
 
@@ -148,4 +203,6 @@ if (useWebPlayback) {
 
 - [Spotify Web Playback SDK](https://developer.spotify.com/documentation/web-playback-sdk)
 - [Spotify OAuth 2.0](https://developer.spotify.com/documentation/web-api/concepts/authorization)
-- [Implicit Grant Flow](https://developer.spotify.com/documentation/web-api/tutorials/implicit-flow)
+- [Authorization Code with PKCE](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow)
+- [Migration from Implicit Grant](https://developer.spotify.com/documentation/web-api/tutorials/migration-implicit-auth-code)
+- [OAuth Migration Announcement](https://developer.spotify.com/blog/2025-10-14-reminder-oauth-migration-27-nov-2025)

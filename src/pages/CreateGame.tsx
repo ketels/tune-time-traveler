@@ -188,7 +188,7 @@ export default function CreateGame() {
             ) : (
               <Button
                 variant="outline"
-                onClick={loginWithSpotify}
+                onClick={() => loginWithSpotify()}
                 className="w-full"
               >
                 <Zap className="w-4 h-4 mr-2" />

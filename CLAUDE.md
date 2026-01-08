@@ -19,6 +19,32 @@ npm run lint            # Run ESLint
 # Supabase (if using local development)
 npx supabase start      # Start local Supabase
 npx supabase stop       # Stop local Supabase
+
+# Supabase Edge Functions
+npx supabase functions deploy spotify-token  # Deploy Spotify token exchange function
+npx supabase secrets set KEY="value"         # Set edge function secrets
+```
+
+## CI/CD
+
+### Deployments
+
+**Production (main branch):**
+- Automatically deployed to `https://ketels.github.io/tune-time-traveler/`
+- Triggered on push to `main`
+- Uses `.github/workflows/deploy.yml`
+
+**PR Previews:**
+- Automatically deployed for every pull request
+- URL: `https://ketels.github.io/tune-time-traveler/pr-{NUMBER}/`
+- Cleaned up when PR is closed
+- Uses `.github/workflows/preview.yml`
+- See `PREVIEW_DEPLOYMENTS.md` for details
+
+### Testing Spotify OAuth in PRs
+When testing Spotify login in a PR preview, add the preview redirect URI to Spotify:
+```
+https://ketels.github.io/tune-time-traveler/pr-{NUMBER}/callback
 ```
 
 ## Architecture

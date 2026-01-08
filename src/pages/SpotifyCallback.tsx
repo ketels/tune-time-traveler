@@ -18,8 +18,8 @@ export default function SpotifyCallback() {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // Extract auth from URL
-        const authState = handleSpotifyCallback();
+        // Extract auth from URL and exchange code for token
+        const authState = await handleSpotifyCallback();
 
         if (!authState) {
           setStatus('error');

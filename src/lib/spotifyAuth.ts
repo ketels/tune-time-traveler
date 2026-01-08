@@ -1,11 +1,15 @@
-// Spotify Web Playback SDK Authentication
+// Spotify Web Playback SDK Authentication with PKCE
 // For Premium users who want to play music in the browser
+// Uses Authorization Code with PKCE (required as of Nov 2025)
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
-const REDIRECT_URI = `${window.location.origin}${import.meta.env.BASE_URL}callback`;
+// Spotify requires 127.0.0.1 instead of localhost for local dev
+const origin = window.location.origin.replace('localhost', '127.0.0.1');
+const REDIRECT_URI = `${origin}${import.meta.env.BASE_URL}callback`;
 
 export interface SpotifyAuthState {
   accessToken: string;
+  refreshToken?: string;
   expiresAt: number;
   isPremium: boolean;
   userId: string;
@@ -21,57 +25,151 @@ const SCOPES = [
 ];
 
 /**
- * Initiates Spotify OAuth flow (Implicit Grant)
+ * Generate PKCE code verifier (random string 43-128 chars)
+ */
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(64);
+  crypto.getRandomValues(array);
+  return base64URLEncode(array);
+}
+
+/**
+ * Generate PKCE code challenge from verifier
+ */
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return base64URLEncode(new Uint8Array(hash));
+}
+
+/**
+ * Base64 URL encode (without padding)
+ */
+function base64URLEncode(buffer: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...buffer));
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+/**
+ * Initiates Spotify OAuth flow with PKCE
  * Redirects user to Spotify login
  */
-export function loginWithSpotify(): void {
+export async function loginWithSpotify(): Promise<void> {
   const state = generateRandomString(16);
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  // Store state and verifier for callback validation
   localStorage.setItem('spotify_auth_state', state);
+  localStorage.setItem('spotify_code_verifier', codeVerifier);
 
   const params = new URLSearchParams({
     client_id: SPOTIFY_CLIENT_ID,
-    response_type: 'token',
+    response_type: 'code',
     redirect_uri: REDIRECT_URI,
     state: state,
     scope: SCOPES.join(' '),
-    show_dialog: 'true', // Force user to see authorization dialog
+    code_challenge_method: 'S256',
+    code_challenge: codeChallenge,
+    show_dialog: 'true',
   });
 
   window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
 /**
- * Handles OAuth callback after Spotify login
- * Extracts access token from URL hash
+ * Handles OAuth callback after Spotify login with PKCE
+ * Extracts authorization code and exchanges it for access token
  */
-export function handleSpotifyCallback(): SpotifyAuthState | null {
-  const hash = window.location.hash.substring(1);
-  const params = new URLSearchParams(hash);
+export async function handleSpotifyCallback(): Promise<SpotifyAuthState | null> {
+  const params = new URLSearchParams(window.location.search);
 
-  const accessToken = params.get('access_token');
+  const code = params.get('code');
   const state = params.get('state');
-  const expiresIn = params.get('expires_in');
+  const error = params.get('error');
   const storedState = localStorage.getItem('spotify_auth_state');
+  const codeVerifier = localStorage.getItem('spotify_code_verifier');
 
-  // Validate state to prevent CSRF
-  if (!accessToken || state !== storedState) {
-    console.error('[SpotifyAuth] Invalid callback state');
+  // Check for errors
+  if (error) {
+    console.error('[SpotifyAuth] Authorization error:', error);
+    localStorage.removeItem('spotify_auth_state');
+    localStorage.removeItem('spotify_code_verifier');
     return null;
   }
 
-  // Clean up
+  // Validate state to prevent CSRF
+  if (!code || !codeVerifier || state !== storedState) {
+    console.error('[SpotifyAuth] Invalid callback state');
+    localStorage.removeItem('spotify_auth_state');
+    localStorage.removeItem('spotify_code_verifier');
+    return null;
+  }
+
+  // Clean up state
   localStorage.removeItem('spotify_auth_state');
-  window.history.replaceState({}, document.title, window.location.pathname);
+  localStorage.removeItem('spotify_code_verifier');
 
-  const expiresAt = Date.now() + (parseInt(expiresIn || '3600') * 1000);
+  // Exchange authorization code for access token via edge function
+  try {
+    const tokens = await exchangeCodeForToken(code, codeVerifier);
 
-  // We'll check Premium status separately
-  return {
-    accessToken,
-    expiresAt,
-    isPremium: false, // Will be updated after profile check
-    userId: '',
-  };
+    if (!tokens) {
+      return null;
+    }
+
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    return {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: Date.now() + (tokens.expires_in * 1000),
+      isPremium: false, // Will be updated after profile check
+      userId: '',
+    };
+  } catch (error) {
+    console.error('[SpotifyAuth] Token exchange failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Exchange authorization code for access token using Supabase Edge Function
+ */
+async function exchangeCodeForToken(
+  code: string,
+  codeVerifier: string
+): Promise<{ access_token: string; refresh_token: string; expires_in: number } | null> {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/spotify-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        code,
+        code_verifier: codeVerifier,
+        redirect_uri: REDIRECT_URI,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[SpotifyAuth] Token exchange error:', errorText);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[SpotifyAuth] Token exchange request failed:', error);
+    return null;
+  }
 }
 
 /**
