@@ -1,0 +1,163 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with preview base path
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SPOTIFY_CLIENT_ID: ${{ vars.VITE_SPOTIFY_CLIENT_ID }}
+        run: |
+          # Build with base path for this PR
+          sed -i 's|base: "/tune-time-traveler/"|base: "/tune-time-traveler/pr-${{ github.event.pull_request.number }}/"|' vite.config.ts
+          npm run build
+
+      - name: Deploy to gh-pages
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages; then
+            # Clone existing gh-pages branch
+            git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+          else
+            # Create new gh-pages branch
+            git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+            cd gh-pages-repo
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "# PR Previews" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            cd ..
+          fi
+
+          # Create/update preview directory
+          mkdir -p gh-pages-repo/pr-${{ github.event.pull_request.number }}
+          rm -rf gh-pages-repo/pr-${{ github.event.pull_request.number }}/*
+          cp -r dist/* gh-pages-repo/pr-${{ github.event.pull_request.number }}/
+
+          # Commit and push
+          cd gh-pages-repo
+          git add .
+          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+          git push origin gh-pages
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const previewUrl = `https://${{ github.repository_owner }}.github.io/tune-time-traveler/pr-${prNumber}/`;
+
+            // Check if preview comment already exists
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Preview deployment')
+            );
+
+            const commentBody = `## 🚀 Preview deployment ready!
+
+            Your changes are deployed and available at:
+            **${previewUrl}**
+
+            ### Spotify OAuth Test
+            Make sure to add this redirect URI to your Spotify App:
+            \`\`\`
+            https://${{ github.repository_owner }}.github.io/tune-time-traveler/pr-${prNumber}/callback
+            \`\`\`
+
+            <sub>Built from commit ${context.payload.pull_request.head.sha.substring(0, 7)}</sub>`;
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: commentBody
+              });
+            }
+
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Remove preview from gh-pages
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages; then
+            # Clone gh-pages branch
+            git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+
+            # Remove preview directory
+            cd gh-pages-repo
+            rm -rf pr-${{ github.event.pull_request.number }}
+
+            # Commit and push
+            git add .
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+            git push origin gh-pages
+          else
+            echo "gh-pages branch does not exist, nothing to clean up"
+          fi
+
+      - name: Comment PR cleanup
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `## 🧹 Preview deployment cleaned up\n\nThe preview for this PR has been removed from GitHub Pages.`
+            });

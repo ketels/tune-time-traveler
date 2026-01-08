@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocalGame } from '@/hooks/useLocalGame';
-import { Music, Play } from 'lucide-react';
+import { Music, Play, Zap, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { loginWithSpotify, loadSpotifyAuth, clearSpotifyAuth, SpotifyAuthState } from '@/lib/spotifyAuth';
 
 const DECADES = ['1960', '1970', '1980', '1990', '2000', '2010', '2020'];
 const GENRES = ['pop', 'rock', 'hip-hop', 'r&b', 'electronic', 'country', 'jazz', 'classical'];
@@ -16,8 +17,15 @@ export default function CreateGame() {
   const [selectedDecades, setSelectedDecades] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-  
+  const [spotifyAuth, setSpotifyAuth] = useState<SpotifyAuthState | null>(null);
+
   const { createGame } = useLocalGame({ isHost: true });
+
+  // Check for existing Spotify auth on mount
+  useEffect(() => {
+    const auth = loadSpotifyAuth();
+    setSpotifyAuth(auth);
+  }, []);
 
   const toggleDecade = (decade: string) => {
     setSelectedDecades(prev => 
@@ -124,6 +132,69 @@ export default function CreateGame() {
                 </label>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Spotify Premium Login (Optional) */}
+        <Card className="glass border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Zap className="w-5 h-5 text-primary" />
+              Spotify Premium (valfritt)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Logga in med Spotify Premium för att spela musik direkt i browsern
+            </p>
+
+            {spotifyAuth && spotifyAuth.isPremium ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-500">Inloggad med Premium</p>
+                  <p className="text-xs text-muted-foreground">Musik spelas i browsern</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    clearSpotifyAuth();
+                    setSpotifyAuth(null);
+                  }}
+                  className="text-xs"
+                >
+                  Logga ut
+                </Button>
+              </div>
+            ) : spotifyAuth && !spotifyAuth.isPremium ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex-1">
+                  <p className="text-sm text-amber-500">Spotify Premium krävs</p>
+                  <p className="text-xs text-muted-foreground">Musik öppnas i Spotify-appen</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    clearSpotifyAuth();
+                    setSpotifyAuth(null);
+                  }}
+                  className="text-xs"
+                >
+                  Rensa
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => loginWithSpotify()}
+                className="w-full"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Logga in med Spotify Premium
+              </Button>
+            )}
           </CardContent>
         </Card>
 

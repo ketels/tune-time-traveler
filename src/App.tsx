@@ -11,6 +11,7 @@ import TeamLobby from "./pages/TeamLobby";
 import PlayerView from "./pages/PlayerView";
 import TeamView from "./pages/TeamView";
 import Results from "./pages/Results";
+import SpotifyCallback from "./pages/SpotifyCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/create" element={<CreateGame />} />
           <Route path="/join" element={<JoinGame />} />
+          <Route path="/callback" element={<SpotifyCallback />} />
           <Route path="/host/:gameCode" element={<HostLobby />} />
           <Route path="/lobby/:gameCode" element={<TeamLobby />} />
           <Route path="/player/:gameCode" element={<PlayerView />} />

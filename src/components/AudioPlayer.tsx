@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
+import { SpotifyWebPlayer } from '@/components/SpotifyWebPlayer';
+import { SpotifyAuth } from '@/lib/localGameState';
 
 interface AudioPlayerProps {
   albumImage: string | null;
@@ -9,6 +11,7 @@ interface AudioPlayerProps {
   year?: number;
   spotifyUri?: string | null;
   isHost?: boolean;
+  spotifyAuth?: SpotifyAuth | null;
 }
 
 export function AudioPlayer({
@@ -18,10 +21,14 @@ export function AudioPlayer({
   artistName,
   year,
   spotifyUri,
-  isHost = false
+  isHost = false,
+  spotifyAuth = null,
 }: AudioPlayerProps) {
   // Use direct Spotify URI to open in app
   const spotifyUrl = spotifyUri || null;
+
+  // Check if we should use web playback (Premium + auth available)
+  const useWebPlayback = spotifyAuth && spotifyAuth.isPremium && Date.now() < spotifyAuth.expiresAt;
 
   return (
     <div className="glass rounded-2xl p-6 w-full max-w-md mx-auto">
@@ -61,22 +68,42 @@ export function AudioPlayer({
         </div>
       )}
 
-      {/* Open in Spotify Button */}
-      {spotifyUrl ? (
-        <a
-          href={spotifyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <Button
-            size="lg"
-            className="w-full h-14 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold"
+      {/* Playback Controls */}
+      {useWebPlayback && spotifyUrl && spotifyAuth ? (
+        // Premium: Use Web Playback SDK
+        <div className="space-y-3">
+          <SpotifyWebPlayer
+            trackUri={spotifyUrl}
+            accessToken={spotifyAuth.accessToken}
+            autoPlay={true}
+          />
+          <p className="text-xs text-center text-muted-foreground">
+            Spelar med Spotify Premium
+          </p>
+        </div>
+      ) : spotifyUrl ? (
+        // Non-Premium or no auth: Fallback to "Open in Spotify" button
+        <>
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
           >
-            <ExternalLink className="w-5 h-5 mr-2" />
-            Öppna i Spotify
-          </Button>
-        </a>
+            <Button
+              size="lg"
+              className="w-full h-14 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold"
+            >
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Öppna i Spotify
+            </Button>
+          </a>
+          {!useWebPlayback && isHost && (
+            <p className="text-xs text-center text-muted-foreground mt-2">
+              Tips: Logga in med Spotify Premium för att spela i browsern
+            </p>
+          )}
+        </>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
           Ingen Spotify-länk tillgänglig

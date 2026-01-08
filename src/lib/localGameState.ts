@@ -32,6 +32,13 @@ export interface LocalCurrentRound {
   consecutiveCorrect: number;
 }
 
+export interface SpotifyAuth {
+  accessToken: string;
+  expiresAt: number;
+  isPremium: boolean;
+  userId: string;
+}
+
 export interface LocalGameState {
   code: string;
   status: 'lobby' | 'playing' | 'finished';
@@ -42,6 +49,7 @@ export interface LocalGameState {
   };
   teams: LocalTeam[];
   currentRound: LocalCurrentRound | null;
+  spotifyAuth?: SpotifyAuth | null; // Optional Spotify Premium auth for web playback
 }
 
 // Team colors
