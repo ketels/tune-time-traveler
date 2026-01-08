@@ -41,8 +41,22 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone gh-pages branch
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages; then
+            # Clone existing gh-pages branch
+            git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+          else
+            # Create new gh-pages branch
+            git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+            cd gh-pages-repo
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "# PR Previews" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            cd ..
+          fi
 
           # Create/update preview directory
           mkdir -p gh-pages-repo/pr-${{ github.event.pull_request.number }}
@@ -118,17 +132,22 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone gh-pages branch
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages; then
+            # Clone gh-pages branch
+            git clone --branch gh-pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-repo
 
-          # Remove preview directory
-          cd gh-pages-repo
-          rm -rf pr-${{ github.event.pull_request.number }}
+            # Remove preview directory
+            cd gh-pages-repo
+            rm -rf pr-${{ github.event.pull_request.number }}
 
-          # Commit and push
-          git add .
-          git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-          git push
+            # Commit and push
+            git add .
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+            git push
+          else
+            echo "gh-pages branch does not exist, nothing to clean up"
+          fi
 
       - name: Comment PR cleanup
         uses: actions/github-script@v7
