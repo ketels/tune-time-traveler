@@ -103,7 +103,7 @@ export function SpotifyWebPlayer({
         getOAuthToken: (cb) => {
           cb(accessToken);
         },
-        volume: volume,
+        volume: 0.5, // Initial volume, changes handled via setVolume()
       });
 
       // Error handling
@@ -154,7 +154,7 @@ export function SpotifyWebPlayer({
         player.disconnect();
       }
     };
-  }, [accessToken, volume, onError]);
+  }, [accessToken, onError]);
 
   // Play track when device is ready
   useEffect(() => {
