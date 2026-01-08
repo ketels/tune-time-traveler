@@ -163,7 +163,7 @@ export function SpotifyWebPlayer({
 
     const playTrack = async () => {
       try {
-        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
           method: 'PUT',
           body: JSON.stringify({ uris: [trackUri] }),
           headers: {
@@ -171,7 +171,15 @@ export function SpotifyWebPlayer({
             'Authorization': `Bearer ${accessToken}`,
           },
         });
-        console.log('[Spotify Player] Playing track:', trackUri);
+
+        if (response.ok) {
+          console.log('[Spotify Player] Playing track:', trackUri);
+          setIsPlaying(true);
+        } else {
+          const errorText = await response.text();
+          console.error('[Spotify Player] Failed to play track:', errorText);
+          onError?.(new Error('Failed to play track'));
+        }
       } catch (error) {
         console.error('[Spotify Player] Failed to play track:', error);
         onError?.(error as Error);
@@ -202,8 +210,16 @@ export function SpotifyWebPlayer({
 
   // Handle play/pause toggle
   const handlePlayPause = async () => {
-    if (player) {
-      await player.togglePlay();
+    if (!player) return;
+
+    try {
+      if (isPlaying) {
+        await player.pause();
+      } else {
+        await player.resume();
+      }
+    } catch (error) {
+      console.error('[Spotify Player] Play/pause error:', error);
     }
   };
 
