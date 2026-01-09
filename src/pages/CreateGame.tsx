@@ -71,35 +71,35 @@ export default function CreateGame() {
 
   return (
     <div className="min-h-screen bg-background p-4 flex items-center justify-center">
-      <div className="w-full max-w-md space-y-6 animate-slide-up">
+      <div className="w-full max-w-md md:max-w-xl lg:max-w-2xl space-y-4 md:space-y-6 animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Skapa nytt spel</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Skapa nytt spel</h1>
           <p className="text-muted-foreground">Välj musikfilter för spelet</p>
         </div>
 
         {/* Decades */}
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Music className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Music className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Decennier
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm md:text-base text-muted-foreground mb-4">
               Lämna tomt för alla decennier
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-3">
               {DECADES.map((decade) => (
                 <label
                   key={decade}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
+                  className="flex items-center gap-2 p-2 md:p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
                 >
                   <Checkbox
                     checked={selectedDecades.includes(decade)}
                     onCheckedChange={() => toggleDecade(decade)}
                   />
-                  <span className="text-sm">{decade}s</span>
+                  <span className="text-sm md:text-base">{decade}s</span>
                 </label>
               ))}
             </div>
@@ -109,26 +109,26 @@ export default function CreateGame() {
         {/* Genres */}
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Music className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Music className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Genrer
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm md:text-base text-muted-foreground mb-4">
               Lämna tomt för alla genrer
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
               {GENRES.map((genre) => (
                 <label
                   key={genre}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors capitalize"
+                  className="flex items-center gap-2 p-2 md:p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors capitalize"
                 >
                   <Checkbox
                     checked={selectedGenres.includes(genre)}
                     onCheckedChange={() => toggleGenre(genre)}
                   />
-                  <span className="text-sm">{genre}</span>
+                  <span className="text-sm md:text-base">{genre}</span>
                 </label>
               ))}
             </div>
@@ -138,12 +138,12 @@ export default function CreateGame() {
         {/* Spotify Premium Login (Optional) */}
         <Card className="glass border-primary/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Zap className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Zap className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Spotify Premium (valfritt)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 md:space-y-4">
             <p className="text-sm text-muted-foreground">
               Logga in med Spotify Premium för att spela musik direkt i browsern
             </p>
@@ -203,9 +203,9 @@ export default function CreateGame() {
           size="lg"
           onClick={handleCreate}
           disabled={isCreating}
-          className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
+          className="w-full h-12 md:h-14 text-base md:text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
         >
-          <Play className="w-5 h-5 mr-2" />
+          <Play className="w-4 h-4 md:w-5 md:h-5 mr-2" />
           {isCreating ? 'Skapar...' : 'Skapa spel'}
         </Button>
 

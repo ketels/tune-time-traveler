@@ -141,15 +141,15 @@ export default function TeamView() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-lg mx-auto space-y-6 animate-slide-up">
+      <div className="max-w-lg md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto space-y-6 animate-slide-up">
         {/* Team Header */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div
-              className="w-6 h-6 rounded-full"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full"
               style={{ backgroundColor: myTeam.color }}
             />
-            <h1 className="text-2xl font-bold">{myTeam.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">{myTeam.name}</h1>
           </div>
           
           {isMyTurn ? (
@@ -166,7 +166,7 @@ export default function TeamView() {
         {/* Timeline */}
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="text-lg">Din tidslinje</CardTitle>
+            <CardTitle className="text-base md:text-lg">Din tidslinje</CardTitle>
           </CardHeader>
           <CardContent>
             <Timeline
@@ -214,8 +214,8 @@ export default function TeamView() {
             <CardContent className="py-6">
               {!isRevealed && isMyTurn ? (
                 <div className="text-center">
-                  <Clock className="w-12 h-12 mx-auto text-primary mb-4 animate-pulse" />
-                  <p className="text-lg font-semibold">Lyssna på låten</p>
+                  <Clock className="w-10 h-10 md:w-12 md:h-12 mx-auto text-primary mb-4 animate-pulse" />
+                  <p className="text-base md:text-lg font-semibold">Lyssna på låten</p>
                   <p className="text-muted-foreground mt-2">
                     Placera den i din tidslinje
                   </p>
@@ -264,17 +264,17 @@ export default function TeamView() {
                 </div>
               ) : !isRevealed && !isMyTurn ? (
                 <div className="text-center">
-                  <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-lg font-semibold">{currentTeam?.name} gissar</p>
+                  <Clock className="w-10 h-10 md:w-12 md:h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-base md:text-lg font-semibold">{currentTeam?.name} gissar</p>
                   <p className="text-muted-foreground mt-2">
                     Vänta på din tur...
                   </p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="text-lg font-bold">{currentRound.song.name}</p>
+                  <p className="text-lg md:text-xl font-bold">{currentRound.song.name}</p>
                   <p className="text-muted-foreground">{currentRound.song.artist}</p>
-                  <p className="text-3xl font-mono font-bold text-primary mt-4">
+                  <p className="text-3xl md:text-4xl lg:text-5xl font-mono font-bold text-primary mt-4">
                     {currentRound.song.year}
                   </p>
 
@@ -315,7 +315,7 @@ export default function TeamView() {
         {/* Score */}
         <div className="text-center">
           <p className="text-muted-foreground">Dina kort</p>
-          <p className="text-4xl font-mono font-bold text-primary">
+          <p className="text-4xl md:text-5xl font-mono font-bold text-primary">
             {myTeam.cards.filter(c => !c.isStartCard).length}
           </p>
         </div>

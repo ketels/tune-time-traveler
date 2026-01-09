@@ -24,7 +24,7 @@ export default function TeamLobby() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-8 h-8 md:w-10 md:h-10 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-muted-foreground">Ansluter till spel...</p>
         </div>
       </div>
@@ -53,9 +53,9 @@ export default function TeamLobby() {
 
   return (
     <div className="min-h-screen bg-background p-4 flex items-center justify-center">
-      <div className="w-full max-w-md space-y-6 animate-slide-up">
+      <div className="w-full max-w-md md:max-w-lg lg:max-w-xl space-y-6 animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Ansluten!</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Ansluten!</h1>
           <p className="text-muted-foreground">Väntar på att spelet ska starta</p>
         </div>
 
@@ -63,30 +63,30 @@ export default function TeamLobby() {
         <Card className="glass ring-2 ring-primary">
           <CardContent className="py-6 text-center">
             <div
-              className="w-12 h-12 rounded-full mx-auto mb-4"
+              className="w-12 h-12 md:w-16 md:h-16 rounded-full mx-auto mb-4"
               style={{ backgroundColor: myTeam.color }}
             />
-            <h2 className="text-2xl font-bold">{myTeam.name}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold">{myTeam.name}</h2>
             <p className="text-muted-foreground mt-1">Ditt lag</p>
           </CardContent>
         </Card>
 
         {/* Waiting Animation */}
         <div className="flex items-center justify-center gap-3 py-8">
-          <Clock className="w-6 h-6 text-primary animate-pulse" />
+          <Clock className="w-6 h-6 md:w-8 md:h-8 text-primary animate-pulse" />
           <span className="text-muted-foreground">Väntar på värden...</span>
         </div>
 
         {/* Other Teams */}
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Alla lag ({gameState.teams.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-2 md:space-y-3">
               {gameState.teams.map((team) => (
                 <div
                   key={team.id}
@@ -95,7 +95,7 @@ export default function TeamLobby() {
                   }`}
                 >
                   <div
-                    className="w-4 h-4 rounded-full"
+                    className="w-4 h-4 md:w-5 md:h-5 rounded-full"
                     style={{ backgroundColor: team.color }}
                   />
                   <span className="font-medium">{team.name}</span>

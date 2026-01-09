@@ -75,16 +75,16 @@ export default function JoinGame() {
 
   return (
     <div className="min-h-screen bg-background p-4 flex items-center justify-center">
-      <div className="w-full max-w-md space-y-6 animate-slide-up">
+      <div className="w-full max-w-md md:max-w-lg space-y-6 animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Gå med i spel</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Gå med i spel</h1>
           <p className="text-muted-foreground">Ange spelkoden för att gå med</p>
         </div>
 
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Anslut till spel
             </CardTitle>
           </CardHeader>
@@ -96,7 +96,7 @@ export default function JoinGame() {
                 placeholder="T.ex. ABC123"
                 value={gameCode}
                 onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-                className="mt-2 text-center text-2xl font-mono tracking-widest"
+                className="mt-2 text-center text-2xl md:text-3xl font-mono tracking-widest"
                 maxLength={6}
                 disabled={isJoining}
               />
@@ -118,9 +118,9 @@ export default function JoinGame() {
               size="lg"
               onClick={handleJoin}
               disabled={isJoining}
-              className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
+              className="w-full h-12 md:h-14 text-base md:text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity"
             >
-              <LogIn className="w-5 h-5 mr-2" />
+              <LogIn className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               {isJoining ? 'Ansluter...' : 'Gå med'}
             </Button>
           </CardContent>

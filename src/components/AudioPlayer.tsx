@@ -31,9 +31,9 @@ export function AudioPlayer({
   const useWebPlayback = spotifyAuth && spotifyAuth.isPremium && Date.now() < spotifyAuth.expiresAt;
 
   return (
-    <div className="glass rounded-2xl p-6 w-full max-w-md mx-auto">
+    <div className="glass rounded-2xl p-4 md:p-6 lg:p-8 w-full md:max-w-lg md:mx-auto lg:max-w-xl lg:mx-0">
       {/* Album Art */}
-      <div className="relative aspect-square rounded-xl overflow-hidden mb-6 bg-secondary">
+      <div className="relative aspect-square rounded-xl overflow-hidden mb-4 md:mb-6 lg:mb-8 bg-secondary">
         {albumImage ? (
           <img
             src={albumImage}
@@ -58,10 +58,10 @@ export function AudioPlayer({
       {/* Song Info (only when revealed) */}
       {isRevealed && songName && (
         <div className="text-center mb-4 animate-fade-in">
-          <h3 className="text-xl font-bold text-foreground">{songName}</h3>
+          <h3 className="text-xl md:text-2xl font-bold text-foreground">{songName}</h3>
           <p className="text-muted-foreground">{artistName}</p>
           {year && (
-            <p className="text-3xl font-mono font-bold text-primary mt-2">
+            <p className="text-3xl md:text-4xl font-mono font-bold text-primary mt-2">
               {year}
             </p>
           )}
@@ -92,9 +92,9 @@ export function AudioPlayer({
           >
             <Button
               size="lg"
-              className="w-full h-14 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold"
+              className="w-full h-12 md:h-14 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold"
             >
-              <ExternalLink className="w-5 h-5 mr-2" />
+              <ExternalLink className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               Öppna i Spotify
             </Button>
           </a>

@@ -136,6 +136,26 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* Timeline scrollbar enhancements */
+.timeline-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+@media (min-width: 768px) {
+  .timeline-scroll::-webkit-scrollbar {
+    height: 10px;
+  }
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+  border-radius: 5px;
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.6);
+}
+
 /* Animations */
 @keyframes pulse-glow {
   0%, 100% {

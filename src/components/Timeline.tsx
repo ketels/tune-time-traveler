@@ -45,25 +45,25 @@ export function Timeline({
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto py-4 px-2">
+    <div className="flex items-center gap-2 md:gap-3 lg:gap-4 overflow-x-auto py-4 md:py-6 px-2 md:px-4 timeline-scroll">
       {/* Position before first card */}
       {isInteractive && (
         <button
           onClick={() => handlePositionClick(0)}
           className={cn(
-            'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
+            'flex-shrink-0 w-12 h-24 md:w-20 md:h-32 lg:w-24 lg:h-36 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
             isPositionSelected(0)
               ? 'border-primary bg-primary/20'
               : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
           )}
-          style={{ minWidth: '64px', minHeight: '112px' }}
+          style={{ minWidth: '48px', minHeight: '96px' }}
         >
-          <ChevronLeft className="w-8 h-8 text-muted-foreground" />
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-muted-foreground" />
         </button>
       )}
 
       {sortedCards.map((card, index) => (
-        <div key={card.id} className="flex items-center gap-2">
+        <div key={card.id} className="flex items-center gap-2 md:gap-3 lg:gap-4">
           <GameCard card={card} showDetails={true} />
           
           {/* Position after each card */}
@@ -71,14 +71,14 @@ export function Timeline({
             <button
               onClick={() => handlePositionClick(index + 1)}
               className={cn(
-                'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
+                'flex-shrink-0 w-12 h-24 md:w-20 md:h-32 lg:w-24 lg:h-36 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
                 isPositionSelected(index + 1)
                   ? 'border-primary bg-primary/20'
                   : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
               )}
-              style={{ minWidth: '64px', minHeight: '112px' }}
+              style={{ minWidth: '48px', minHeight: '96px' }}
             >
-              <ChevronsLeftRight className="w-8 h-8 text-muted-foreground" />
+              <ChevronsLeftRight className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -89,14 +89,14 @@ export function Timeline({
         <button
           onClick={() => handlePositionClick(sortedCards.length)}
           className={cn(
-            'flex-shrink-0 w-16 h-28 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
+            'flex-shrink-0 w-12 h-24 md:w-20 md:h-32 lg:w-24 lg:h-36 rounded-lg border-2 border-dashed transition-all flex items-center justify-center cursor-pointer touch-manipulation',
             isPositionSelected(sortedCards.length)
               ? 'border-primary bg-primary/20'
               : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/10'
           )}
-          style={{ minWidth: '64px', minHeight: '112px' }}
+          style={{ minWidth: '48px', minHeight: '96px' }}
         >
-          <ChevronRight className="w-8 h-8 text-muted-foreground" />
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-muted-foreground" />
         </button>
       )}
     </div>

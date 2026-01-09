@@ -61,7 +61,7 @@ export default function HostLobby() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-8 h-8 md:w-10 md:h-10 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-muted-foreground">Laddar...</p>
         </div>
       </div>
@@ -81,9 +81,9 @@ export default function HostLobby() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-lg mx-auto space-y-6 animate-slide-up">
+      <div className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto space-y-4 md:space-y-6 animate-slide-up">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">Väntar på lag</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Väntar på lag</h1>
           <p className="text-muted-foreground">
             {isConnected ? 'Ansluten till broadcast' : 'Ansluter...'}
           </p>
@@ -92,8 +92,10 @@ export default function HostLobby() {
         {/* QR Code */}
         <Card className="glass">
           <CardContent className="py-6 flex flex-col items-center">
-            <QRCode value={joinUrl} size={200} />
-            <p className="text-sm text-muted-foreground mt-4">
+            <div className="w-[200px] md:w-[240px] lg:w-[280px]">
+              <QRCode value={joinUrl} size={280} />
+            </div>
+            <p className="text-sm md:text-base text-muted-foreground mt-4">
               Skanna för att ansluta
             </p>
           </CardContent>
@@ -105,15 +107,15 @@ export default function HostLobby() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Spelkod</p>
-                <p className="text-4xl font-mono font-bold tracking-widest text-primary">
+                <p className="text-4xl md:text-5xl lg:text-6xl font-mono font-bold tracking-widest text-primary">
                   {gameCode}
                 </p>
               </div>
               <Button variant="outline" size="icon" onClick={copyCode}>
                 {copied ? (
-                  <Check className="w-5 h-5 text-green-500" />
+                  <Check className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
                 ) : (
-                  <Copy className="w-5 h-5" />
+                  <Copy className="w-5 h-5 md:w-6 md:h-6" />
                 )}
               </Button>
             </div>
@@ -123,8 +125,8 @@ export default function HostLobby() {
         {/* Connected Teams */}
         <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Users className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               Anslutna lag ({gameState.teams.length})
             </CardTitle>
           </CardHeader>
@@ -134,14 +136,14 @@ export default function HostLobby() {
                 Inga lag har anslutit ännu...
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 md:space-y-3">
                 {gameState.teams.map((team) => (
                   <div
                     key={team.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
                   >
                     <div
-                      className="w-4 h-4 rounded-full"
+                      className="w-4 h-4 md:w-5 md:h-5 rounded-full"
                       style={{ backgroundColor: team.color }}
                     />
                     <span className="font-medium">{team.name}</span>
@@ -157,9 +159,9 @@ export default function HostLobby() {
           size="lg"
           onClick={handleStartGame}
           disabled={gameState.teams.length === 0}
-          className="w-full h-14 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="w-full h-12 md:h-14 text-base md:text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          <Play className="w-5 h-5 mr-2" />
+          <Play className="w-4 h-4 md:w-5 md:h-5 mr-2" />
           Starta spelet
         </Button>
 
