@@ -15,6 +15,7 @@ export default function PlayerView() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [canPass, setCanPass] = useState(false);
   const [spotifyAuth, setSpotifyAuth] = useState<SpotifyAuthState | null>(null);
+  const [hasMarkedCurrentRound, setHasMarkedCurrentRound] = useState(false);
 
   const {
     gameState,
@@ -41,6 +42,14 @@ export default function PlayerView() {
     }
   }, [gameState?.status, gameCode, navigate]);
 
+  // Reset hasMarkedCurrentRound when a new round starts
+  useEffect(() => {
+    if (gameState?.currentRound?.id) {
+      setHasMarkedCurrentRound(false);
+      setIsProcessing(false);
+    }
+  }, [gameState?.currentRound?.id]);
+
   const handleFetchSong = async () => {
     try {
       await fetchNewSong();
@@ -63,28 +72,27 @@ export default function PlayerView() {
   };
 
   const handleCorrect = () => {
-    if (isProcessing) return;
+    if (isProcessing || hasMarkedCurrentRound) return;
     setIsProcessing(true);
+    setHasMarkedCurrentRound(true);
     handleCorrectGuess();
     setCanPass(true); // Can pass after getting points
     toast({
       title: 'Rätt!',
       description: `${currentTeam?.name} får kortet`,
     });
-    // Reset after a short delay to allow state to update
-    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleWrong = () => {
-    if (isProcessing) return;
+    if (isProcessing || hasMarkedCurrentRound) return;
     setIsProcessing(true);
+    setHasMarkedCurrentRound(true);
     handleWrongGuess();
     setCanPass(false); // Reset after wrong guess
     toast({
       title: 'Fel!',
       description: 'Nästa lag får gissa',
     });
-    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handlePass = () => {
@@ -96,7 +104,6 @@ export default function PlayerView() {
       title: 'Passade',
       description: 'Nästa lag får gissa',
     });
-    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleEndGame = () => {
@@ -210,7 +217,7 @@ export default function PlayerView() {
                         <Button
                           size="lg"
                           onClick={handleCorrect}
-                          disabled={isProcessing}
+                          disabled={isProcessing || hasMarkedCurrentRound}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <Check className="w-5 h-5 mr-2" />
@@ -219,7 +226,7 @@ export default function PlayerView() {
                         <Button
                           size="lg"
                           onClick={handleWrong}
-                          disabled={isProcessing}
+                          disabled={isProcessing || hasMarkedCurrentRound}
                           className="bg-red-600 hover:bg-red-700"
                         >
                           <X className="w-5 h-5 mr-2" />

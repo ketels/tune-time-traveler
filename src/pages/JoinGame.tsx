@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocalGame } from '@/hooks/useLocalGame';
 import { Users, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getRandomTeamName } from '@/lib/teamNames';
 
 export default function JoinGame() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [gameCode, setGameCode] = useState(searchParams.get('code') || '');
-  const [teamName, setTeamName] = useState('');
+  const [teamName, setTeamName] = useState(getRandomTeamName());
   const [isJoining, setIsJoining] = useState(false);
   const [hasTriedJoin, setHasTriedJoin] = useState(false);
 
